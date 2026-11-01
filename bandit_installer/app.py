@@ -50,10 +50,13 @@ class TextUI(UI):
         for i, o in enumerate(options, 1):
             dis = "  (-)" if o.get("disabled") else ""
             print(f"   {i}. {o['title']}{dis}" + (f" — {o['sub']}" if o.get("sub") else ""))
-        a = self._input(L("  Numero (vuoto = annulla): ", "  Number (empty = cancel): "))
-        if not a.isdigit() or not 1 <= int(a) <= len(options) or options[int(a) - 1].get("disabled"):
-            return None
-        return options[int(a) - 1]["value"]
+        while True:
+            a = self._input(L("  Numero (vuoto = annulla): ", "  Number (empty = cancel): "))
+            if not a.isdigit() or not 1 <= int(a) <= len(options):
+                return None
+            if not options[int(a) - 1].get("disabled"):
+                return options[int(a) - 1]["value"]
+            print(L("  Non disponibile.", "  Not available."))
 
     def form(self, title, body, fields, submit):
         print(f"\n  {title}" + (f"\n  {body}" if body else ""))
@@ -81,6 +84,7 @@ def parse_args(argv):
     ap.add_argument("--lang", choices=("it", "en"))
     ap.add_argument("--work", help="folder for backups, logs and progress (default: work/ next to the installer)")
     ap.add_argument("--text", action="store_true", help="terminal interface instead of the app window")
+    ap.add_argument("--mode", choices=sorted(steps.MODES), help="start this install mode without the menu (full, clean, update)")
     ap.add_argument("--action", choices=sorted(steps.ACTIONS), help="with --text: run one task and exit")
     ap.add_argument("--no-elevate", action="store_true", help="do not ask for administrator/root rights")
     ap.add_argument("--no-browser", action="store_true", help="only print the address of the app window")
@@ -131,15 +135,23 @@ def _run(args, root, system):
         if args.text:
             ui = TextUI(logfile)
             ctx = ctx_factory(ui)
-            names = {"wizard": L("Installazione guidata", "Guided install"), "backup": "Backup",
-                     "firmware": "Firmware", "chain": L("Catena di avvio", "Boot chain"),
+            names = {"backup": "Backup", "firmware": "Firmware", "chain": L("Catena di avvio", "Boot chain"),
                      "verify": L("Verifica lk1st", "Check lk1st"), "boot": L("Avvio in RAM", "Boot in RAM"),
                      "ramoops": L("Log del boot precedente", "Previous boot log"), "flash": L("Scrivi partizione", "Write partition"),
                      "restore": L("Ripristino EFIESP", "Restore EFIESP"), "diag": L("Diagnostica", "Diagnostics"),
                      "tools": L("Strumenti", "Tools")}
+            once = args.mode or args.action
             while True:
-                action = args.action or ui.choose("Lumia 1520 — Android", L(f"Stato: {phone.snapshot().text()}", f"Mode: {phone.snapshot().text()}"),
-                                                  [{"value": k, "title": v} for k, v in names.items()])
+                action = once
+                if not action:
+                    action = ui.choose("Lumia 1520 — Android", L(f"Stato: {phone.snapshot().text()}", f"Mode: {phone.snapshot().text()}"),
+                                       steps.mode_options() + [{"value": "advanced", "title": L("Strumenti avanzati", "Advanced tools"),
+                                                                "sub": L("i singoli passi, prove con lk1st, ripristino", "single steps, lk1st tests, restore")}])
+                    if action == "advanced":
+                        action = ui.choose(L("Strumenti avanzati", "Advanced tools"), "",
+                                           [{"value": k, "title": v} for k, v in names.items()])
+                        if not action:
+                            continue
                 if not action:
                     return 0
                 try:
@@ -148,14 +160,16 @@ def _run(args, root, system):
                     ui.warn(L("Annullato.", "Cancelled."))
                 except (Abort, sysdeps.SysError) as e:
                     ui.error(str(e))
-                    if args.action:
+                    if once:
                         return 1
-                if args.action:
+                if once:
                     return 0
         from . import web
         app = web.App(ctx_factory, system, phone, poller, state, kit, logfile, root)
         url = app.serve(args.port)
         poller.start()
+        if args.mode:
+            app.run_task(args.mode)
         web.main_loop(app, url, open_browser=not args.no_browser)
         return 0
     finally:

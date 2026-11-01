@@ -208,6 +208,7 @@ class App:
             "requirements": self.reqs or [],
             "kit": [{"name": n, "ok": ok} for n, ok in self.kit.status_lines()],
             "done": done,
+            "modes": {k: m["ready"] for k, m in steps.MODES.items()},
             "running": self.task_name if self.running() else None,
             "prompt": self.ui.prompt,
             "last_event": len(self.ui.events),

@@ -1105,12 +1105,64 @@ def act_diag(ctx):
 
 
 # ---------------------------------------------------------------------------
-# guided install
+# install modes (as in the Lumia 950 XL installer: Full, Clean, Update)
 # ---------------------------------------------------------------------------
 
-def act_wizard(ctx):
+# Clean and Update need the Android partitions (phase 2) and a ROM that boots.
+PHASE2_READY = False
+
+MODES = {
+    "full": {
+        "title": ("Completa", "Full"),
+        "before": ("Windows 10 Mobile, sbloccato con WPinternals, in mass storage",
+                   "Windows 10 Mobile, unlocked with WPinternals, in mass storage mode"),
+        "does": ("backup, firmware da Windows, BootShim + lk1st su EFIESP, verifica di lk1st in fastboot",
+                 "backup, firmware from Windows, BootShim + lk1st on EFIESP, lk1st check in fastboot"),
+        "data": ("Windows resta intatto (per ora)", "Windows stays intact (for now)"),
+        "ready": True,
+    },
+    "clean": {
+        "title": ("Pulita", "Clean"),
+        "before": ("lk1st e partizioni Android già presenti", "lk1st and Android partitions already in place"),
+        "does": ("TWRP, formattazione dei dati, ROM", "TWRP, format data, ROM"),
+        "data": ("tutti i dati Android cancellati", "all Android data erased"),
+        "ready": PHASE2_READY,
+    },
+    "update": {
+        "title": ("Aggiornamento", "Update"),
+        "before": ("questa ROM già installata", "this ROM already installed"),
+        "does": ("TWRP, ROM", "TWRP, ROM"),
+        "data": ("conservati", "kept"),
+        "ready": PHASE2_READY,
+    },
+}
+
+NOT_READY = ("Non ancora disponibile: servono le partizioni Android (fase 2, layout non ancora definitivo) e una ROM che si avvia.",
+             "Not available yet: it needs the Android partitions (phase 2, layout not final yet) and a ROM that boots.")
+
+
+def mode_options():
+    """Menu entries for the three modes."""
+    out = []
+    for key, m in MODES.items():
+        sub = L(f"prima: {m['before'][0]}. Dati: {m['data'][0]}.", f"before: {m['before'][1]}. Data: {m['data'][1]}.")
+        if not m["ready"]:
+            sub += " " + L(*NOT_READY)
+        out.append({"value": key, "title": L(*m["title"]), "sub": sub, "disabled": not m["ready"]})
+    return out
+
+
+def act_full(ctx):
     ui = ctx.ui
-    ui.step(L("Installazione guidata", "Guided install"))
+    m = MODES["full"]
+    ui.step(L("Installazione completa", "Full install"))
+    ui.show(L("Cosa fa", "What it does"), [
+        L("Telefono: ", "Phone: ") + L(*m["before"]),
+        L("Passi: ", "Steps: ") + L(*m["does"]),
+        L("Dati: ", "Data: ") + L(*m["data"]),
+        L("Le partizioni Android e la ROM (fase 2) arriveranno quando il layout sarà definitivo.",
+          "Android partitions and the ROM (phase 2) will follow once the layout is final."),
+    ])
     if not ctx.phone.fastboot_exe:
         act_tools(ctx)
     snap = ctx.phone.snapshot()
@@ -1143,11 +1195,25 @@ def act_wizard(ctx):
               "RAM boot of the first bandit kernel, never tried so far. It writes nothing."),
             L("avvia K1", "boot K1"), L("non ora", "not now")):
         act_boot(ctx, ("kit", ctx.kit.boot_images()[0]["id"]))
-    ui.ok(L("Procedura guidata completata.", "Guided install finished."))
+    ui.ok(L("Installazione completa terminata fino a lk1st.", "Full install finished up to lk1st."))
+
+
+def _not_ready(key):
+    def run(ctx):
+        ctx.ui.step(L(f"Installazione {MODES[key]['title'][0].lower()}", f"{MODES[key]['title'][1]} install"))
+        raise Abort(L(*NOT_READY))
+    return run
+
+
+act_clean = _not_ready("clean")
+act_update = _not_ready("update")
 
 
 ACTIONS = {
-    "wizard": act_wizard,
+    "full": act_full,
+    "clean": act_clean,
+    "update": act_update,
+    "wizard": act_full,  # old name of the full mode
     "backup": act_backup,
     "firmware": act_firmware,
     "chain": act_chain,

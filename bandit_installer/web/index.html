@@ -226,8 +226,10 @@ const svg = (n) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" s
 
 const T = {
   it: { installer: "installer", settings: "impostazioni", stop: "stop", details: "dettagli", back: "indietro",
-    phone: "telefono", g_install: "installazione", g_test: "prove con lk1st", g_maint: "manutenzione", g_next: "più avanti",
-    wizard: "Installazione guidata", wizard_s: "dal backup a lk1st, un passo alla volta",
+    phone: "telefono", g_install: "installazione", g_steps: "strumenti avanzati", g_test: "prove con lk1st", g_maint: "manutenzione",
+    full: "Completa", full_s: "Windows resta intatto, si ferma a lk1st",
+    clean: "Pulita", clean_s: "TWRP, formattazione dei dati e ROM. Arriva con le partizioni Android (fase 2)",
+    update: "Aggiornamento", update_s: "TWRP e ROM, dati conservati. Arriva con la prima ROM che si avvia",
     backup: "Backup", backup_s: "GPT, partizioni piccole e immagine completa",
     firmware: "Firmware", firmware_s: "ADSP, Wi-Fi, modem, Venus, ACPI e registro da Windows",
     chain: "Catena di avvio", chain_s: "BootShim + lk1st su EFIESP, voce nel BCD",
@@ -236,7 +238,6 @@ const T = {
     ramoops: "Log del boot precedente", ramoops_s: "ram console e log di lk1st dopo un blocco",
     flash: "Scrivi partizione", flash_s: "fastboot flash di boot, recovery, system…",
     restore: "Ripristino EFIESP", restore_s: "torna allo stato prima dell'installazione",
-    phase2: "Fase 2: partizioni Android e ROM", phase2_s: "in preparazione: serve il layout definitivo",
     diag: "Diagnostica", diag_s: "USB, fastboot, partizioni, requisiti",
     tools: "Strumenti", tools_s: "fastboot e adb (Platform Tools)",
     settings_s: "lingua, colore, informazioni",
@@ -247,8 +248,10 @@ const T = {
     next_hint: "prossimo passo: ", all_done: "catena installata e verificata", on: "Attivato", off: "Disattivato",
     bye: "Installer chiuso. Puoi chiudere questa finestra." },
   en: { installer: "installer", settings: "settings", stop: "stop", details: "details", back: "back",
-    phone: "phone", g_install: "install", g_test: "tests with lk1st", g_maint: "maintenance", g_next: "coming later",
-    wizard: "Guided install", wizard_s: "from backup to lk1st, one step at a time",
+    phone: "phone", g_install: "install", g_steps: "advanced tools", g_test: "tests with lk1st", g_maint: "maintenance",
+    full: "Full", full_s: "Windows stays intact, stops at lk1st",
+    clean: "Clean", clean_s: "TWRP, format data and ROM. Comes with the Android partitions (phase 2)",
+    update: "Update", update_s: "TWRP and ROM, data kept. Comes with the first ROM that boots",
     backup: "Backup", backup_s: "GPT, small partitions and full image",
     firmware: "Firmware", firmware_s: "ADSP, Wi-Fi, modem, Venus, ACPI and registry from Windows",
     chain: "Boot chain", chain_s: "BootShim + lk1st on EFIESP, BCD entry",
@@ -257,7 +260,6 @@ const T = {
     ramoops: "Previous boot log", ramoops_s: "ram console and lk1st log after a hang",
     flash: "Write partition", flash_s: "fastboot flash of boot, recovery, system…",
     restore: "Restore EFIESP", restore_s: "back to how it was before the install",
-    phase2: "Phase 2: Android partitions and ROM", phase2_s: "in preparation: needs the final layout",
     diag: "Diagnostics", diag_s: "USB, fastboot, partitions, requirements",
     tools: "Tools", tools_s: "fastboot and adb (Platform Tools)",
     settings_s: "language, colour, about",
@@ -299,10 +301,10 @@ setInterval(tick, 10000); tick();
 
 // ---------------------------------------------------------------- home
 const ITEMS = [
-  ["g_install"], ["wizard", "wizard"], ["backup", "backup"], ["firmware", "chip"], ["chain", "chain"], ["verify", "check"],
+  ["g_install"], ["full", "wizard"], ["clean", "flash"], ["update", "restore"],
+  ["g_steps"], ["backup", "backup"], ["firmware", "chip"], ["chain", "chain"], ["verify", "check"],
   ["g_test"], ["boot", "play"], ["ramoops", "memory"], ["flash", "flash"],
   ["g_maint"], ["restore", "restore"], ["diag", "log"], ["tools", "tools"], ["settings", "gear"],
-  ["g_next"], ["phase2", "lock", true],
 ];
 const ORDER = ["backup", "firmware", "chain", "lk1st"];
 
@@ -320,15 +322,17 @@ function renderHome(force) {
   let h = `<div class="tile ${ph.problem ? "problem" : ""}" data-act="diag">${svg("phone")}<div>
     <div class="t1">${t("phone")}</div><div class="t2">${esc(ph.text || "…")}</div>
     <div class="t3">${esc(ph.problem || ph.detail || (S.admin ? "" : t("admin_no")))}</div></div></div>`;
-  for (const [key, icon, disabled] of ITEMS) {
+  for (const [key, icon] of ITEMS) {
+    const disabled = S.modes && key in S.modes && !S.modes[key];
     if (!icon) { h += `<div class="group">${t(key)}</div>`; continue; }
     let sub = t(key + "_s");
     const stepKey = key === "verify" ? "lk1st" : key;
     let done = S.done[stepKey] ? `<div class="done">${t("done_on")} ${fmtDate(S.done[stepKey])}</div>` : "";
-    if (key === "wizard") sub = next ? t("next_hint") + nextName.toLowerCase() : t("all_done");
+    if (key === "full") { sub = (next ? t("next_hint") + nextName.toLowerCase() : t("all_done")) + " · " + sub; done = ""; }
+    const icoHtml = disabled ? svg("lock") : svg(icon);
     if (S.running === key) done = `<div class="done" style="color:var(--accent)">${t("running")}…</div>`;
     h += `<div class="item ${disabled ? "disabled" : ""}" data-act="${disabled ? "" : key}">
-      <div class="ico">${svg(icon)}</div><div class="txt"><div class="title">${t(key)}</div><div class="sub">${esc(sub)}</div>${done}</div></div>`;
+      <div class="ico">${icoHtml}</div><div class="txt"><div class="title">${t(key)}</div><div class="sub">${esc(sub)}</div>${done}</div></div>`;
   }
   $("homelist").innerHTML = h;
   $("sbmode").textContent = ph.mode && ph.mode !== "none" ? ph.mode : "";

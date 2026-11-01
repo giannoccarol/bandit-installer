@@ -20,11 +20,27 @@ fastboot and collects the logs. **Experimental**: the work on the Android port i
 
 <sub>Screenshots taken with the Italian interface on a real RM-937 in lk1st fastboot.</sub>
 
-## What it does
+## Modes
+
+As in the [Lumia 950 XL installer](https://github.com/giannoccarol/installer-cityman-a16), you pick one
+of three modes and the installer goes through the steps in order, resuming where it stopped.
+
+| Mode | Phone before | What happens | Data |
+|---|---|---|---|
+| **Full** | Windows 10 Mobile, unlocked with WPinternals, in mass storage mode | Backup, firmware from Windows, BootShim + lk1st on EFIESP, restart and lk1st check in fastboot; then, optionally, the K1 test kernel in RAM | Windows stays intact (for now) |
+| **Clean** | lk1st and Android partitions already in place | TWRP, format data, ROM | All Android data erased |
+| **Update** | This ROM already installed | TWRP, ROM | Kept |
+
+Today only **Full** is available, and it stops at lk1st in fastboot. Clean, Update and the part of Full
+that replaces Windows with the Android partitions are shown but disabled until the partition layout is
+final and a ROM boots on the phone (phase 2).
+
+## Advanced tools
+
+The single steps are also available on their own, for development and recovery:
 
 | Task | Phone mode | Writes to the phone |
 |---|---|---|
-| **Guided install** | mass storage → fastboot | as the steps below, one at a time, with resume |
 | **Backup** | mass storage | no: GPT, every partition under 512 MiB (read twice and compared), optional full compressed image, SHA-256 list |
 | **Firmware** | mass storage | no: ADSP/WCNSS/modem/Venus firmware, audio and Wi-Fi calibration, ACPI tables and registry from Windows; `.mbn` split into `.mdt` + `.bNN` |
 | **Boot chain** | mass storage | EFIESP only: BootShim, lk1st and a BCD entry, after a backup of EFIESP (files and raw image) |
@@ -35,10 +51,7 @@ fastboot and collects the logs. **Experimental**: the work on the Android port i
 | **Restore EFIESP** | mass storage | yes: back to a backup, by files (Windows and Linux) or whole image (Linux) |
 | **Diagnostics** | any | no |
 
-Phase 2 (Android partitions in place of Windows, modem provisioning, ROM install) is shown but
-disabled until the partition layout is final.
-
-### Safety
+## Safety
 
 - Holding **volume up** at power-on opens flash mode, the way back with WPinternals. The installer
   refuses any BCD that would change that action.
@@ -79,9 +92,11 @@ installer.bat             :: Windows (asks for administrator rights)
 
 | Option | Meaning |
 |---|---|
+| `--mode full\|clean\|update` | start that mode without the menu |
 | `--lang it\|en` | interface language (default: system language) |
 | `--text` | terminal interface, for SSH or machines without a browser |
 | `--text --action <task>` | run one task and exit (`backup`, `chain`, `verify`, `boot`, `diag`…) |
+| `--text --mode full` | run the full install in the terminal and exit |
 | `--work <folder>` | backups, logs and progress (default `work/` next to the installer) |
 | `--no-browser` | only print the address of the app window |
 | `--no-elevate` | do not ask for administrator/root rights (fastboot tasks only) |
