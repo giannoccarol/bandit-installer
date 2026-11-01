@@ -6,6 +6,7 @@ random token: the process runs as root/administrator and writes to the phone.
 import http.server
 import json
 import os
+import re
 import secrets
 import shutil
 import socketserver
@@ -209,6 +210,7 @@ class App:
             "kit": [{"name": n, "ok": ok} for n, ok in self.kit.status_lines()],
             "done": done,
             "modes": {k: m["ready"] for k, m in steps.MODES.items()},
+            "accent": self.state.data.get("accent"),
             "running": self.task_name if self.running() else None,
             "prompt": self.ui.prompt,
             "last_event": len(self.ui.events),
@@ -286,7 +288,15 @@ class App:
                     self._json({"ok": True})
                 elif p == "/api/lang":
                     set_lang(data.get("lang", "en"))
+                    app.state.data["lang"] = get_lang()
+                    app.state.save()
                     app.reqs = None
+                    self._json({"ok": True})
+                elif p == "/api/accent":
+                    a = str(data.get("accent", ""))
+                    if re.fullmatch(r"#[0-9a-fA-F]{6}", a):
+                        app.state.data["accent"] = a
+                        app.state.save()
                     self._json({"ok": True})
                 elif p == "/api/quit":
                     self._json({"ok": not app.running()})
@@ -299,6 +309,11 @@ class App:
             daemon_threads = True
             allow_reuse_address = True
 
+            def handle_error(self, request, client_address):
+                if isinstance(sys.exc_info()[1], (BrokenPipeError, ConnectionResetError)):
+                    return  # the window was closed during a request
+                super().handle_error(request, client_address)
+
         httpd = Server(("127.0.0.1", port), Handler)
         threading.Thread(target=httpd.serve_forever, daemon=True).start()
         self.httpd = httpd
@@ -309,7 +324,7 @@ class App:
 # opening an app window
 # ---------------------------------------------------------------------------
 
-APP_SIZE = "--window-size=460,880"
+APP_SIZE = "--window-size=1280,800"
 
 
 def open_window(url):

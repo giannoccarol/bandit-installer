@@ -81,7 +81,7 @@ class TextUI(UI):
 
 def parse_args(argv):
     ap = argparse.ArgumentParser(prog="installer", description="Android installer for the Nokia Lumia 1520 (bandit)")
-    ap.add_argument("--lang", choices=("it", "en"))
+    ap.add_argument("--lang", choices=("en", "it"), help="interface language (default: English, or the one chosen in the settings)")
     ap.add_argument("--work", help="folder for backups, logs and progress (default: work/ next to the installer)")
     ap.add_argument("--text", action="store_true", help="terminal interface instead of the app window")
     ap.add_argument("--mode", choices=sorted(steps.MODES), help="start this install mode without the menu (full, clean, update)")
@@ -122,6 +122,8 @@ def _run(args, root, system):
     os.makedirs(os.path.join(work, "logs"), exist_ok=True)
     logfile = os.path.join(work, "logs", f"session-{stamp()}.log")
     state = State(os.path.join(work, "state.json"))
+    if not args.lang and state.data.get("lang") in ("en", "it"):
+        i18n.set_lang(state.data["lang"])
     kit = Kit(os.path.join(root, "payload"))
     log_target = {}
     phone = Phone(system, lambda t: log_target["ui"].detail(t) if "ui" in log_target else None)

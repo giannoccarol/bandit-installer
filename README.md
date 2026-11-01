@@ -1,7 +1,8 @@
 # Lumia 1520 Android installer (bandit)
 
 An installer for running Android on the Nokia Lumia 1520 (RM-937/RM-938/RM-940, codename
-**bandit**), for **Windows and Linux**, with an app window in the style of Windows 10 Mobile.
+**bandit**), for **Windows and Linux**, with a desktop app window in the style of Windows 10. The interface is in English, with Italian
+available in the settings or with `--lang it`.
 
 It sets up the boot chain that starts Android from the phone's own Windows Phone boot manager:
 
@@ -93,7 +94,7 @@ installer.bat             :: Windows (asks for administrator rights)
 | Option | Meaning |
 |---|---|
 | `--mode full\|clean\|update` | start that mode without the menu |
-| `--lang it\|en` | interface language (default: system language) |
+| `--lang en\|it` | interface language (default: English, or the one last chosen in the settings) |
 | `--text` | terminal interface, for SSH or machines without a browser |
 | `--text --action <task>` | run one task and exit (`backup`, `chain`, `verify`, `boot`, `diag`…) |
 | `--text --mode full` | run the full install in the terminal and exit |

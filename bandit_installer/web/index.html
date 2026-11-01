@@ -3,196 +3,275 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lumia 1520 Installer</title>
+<title>Lumia 1520 Android Installer</title>
 <style>
 :root {
   --accent: #0078d7;
-  --bg: #000;
-  --fg: #fff;
-  --sub: #9a9a9a;
-  --dim: #5d5d5d;
-  --panel: #1f1f1f;
+  --bg: #171717;
+  --nav: #202020;
+  --card: #262626;
+  --card-hi: #2f2f2f;
+  --fg: #ffffff;
+  --text: #e6e6e6;
+  --sub: #a0a0a0;
+  --dim: #666;
+  --line: #353535;
   --dialog: #2b2b2b;
-  --button: #333;
-  --line: #2d2d2d;
-  --ok: #3fb950;
-  --warn: #f0a30a;
-  --err: #e51400;
+  --button: #3a3a3a;
+  --ok: #6ccb5f;
+  --warn: #fce100;
+  --err: #ff99a4;
+  --danger: #c42b1c;
+  --mono: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); }
 body {
-  font-family: "Segoe UI", "Selawik", "Segoe WP", "Open Sans", "Noto Sans", "Cantarell", "Helvetica Neue", Arial, sans-serif;
-  font-size: 15px; -webkit-font-smoothing: antialiased; overflow: hidden;
-  user-select: none;
+  font-family: "Segoe UI", "Selawik", "Open Sans", "Noto Sans", "Cantarell", "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px; line-height: 1.43; -webkit-font-smoothing: antialiased; overflow: hidden; user-select: none;
 }
 button { font: inherit; color: inherit; }
-#app { position: relative; height: 100%; max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; }
+svg { display: block; }
+.hidden { display: none !important; }
 
-/* status bar */
-.statusbar { height: 26px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between;
-  font-size: 12px; color: #ddd; flex: none; }
-.statusbar .left { display: flex; gap: 8px; align-items: center; }
-.signal { display: inline-flex; gap: 2px; align-items: flex-end; height: 11px; }
-.signal i { width: 3px; background: #ddd; display: block; }
-.signal i.off { background: #555; }
-.battery { width: 22px; height: 10px; border: 1px solid #ddd; position: relative; padding: 1px; }
-.battery::after { content: ""; position: absolute; right: -3px; top: 2px; width: 2px; height: 4px; background: #ddd; }
-.battery b { display: block; height: 100%; width: 80%; background: #ddd; }
+/* ---------------------------------------------------------------- shell */
+#app { display: flex; height: 100%; min-width: 0; }
 
-/* pages */
-.page { position: absolute; inset: 26px 0 0 0; display: flex; flex-direction: column; }
-.page.hidden { display: none; }
-.page.enter { animation: turnstile .32s cubic-bezier(.1,.9,.2,1); transform-origin: left center; }
-@keyframes turnstile { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
-.scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding-bottom: 24px; scrollbar-width: thin; scrollbar-color: #444 transparent; }
-.header { padding: 6px 18px 4px; flex: none; }
-.apptitle { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #ddd;
-  display: flex; align-items: center; gap: 10px; }
-.apptitle svg { width: 22px; height: 22px; color: var(--accent); }
-.pagetitle { font-size: 34px; font-weight: 300; margin: 2px 0 10px; letter-spacing: -.01em; line-height: 1.15; text-transform: lowercase; }
+nav { width: 300px; flex: none; background: var(--nav); display: flex; flex-direction: column; border-right: 1px solid #0c0c0c; }
+.brand { display: flex; align-items: center; gap: 12px; padding: 18px 20px 14px; }
+.brand .logo { width: 28px; height: 28px; color: var(--accent); flex: none; }
+.brand .name { font-size: 15px; font-weight: 600; color: var(--fg); line-height: 1.2; }
+.brand .name small { display: block; font-size: 12px; font-weight: 400; color: var(--sub); }
 
-/* status tile */
-.tile { margin: 4px 18px 10px; background: var(--accent); padding: 12px 14px; display: flex; gap: 14px; align-items: center;
-  cursor: pointer; transition: transform .1s; }
-.tile:active { transform: scale(.98); }
-.tile svg { width: 34px; height: 34px; flex: none; }
-.tile .t1 { font-size: 13px; opacity: .85; text-transform: lowercase; }
-.tile .t2 { font-size: 19px; font-weight: 400; line-height: 1.2; }
-.tile .t3 { font-size: 12px; opacity: .85; margin-top: 2px; }
-.tile.problem { background: #a20025; }
+.phonecard { margin: 4px 14px 14px; background: var(--accent); color: #fff; padding: 14px 16px; display: flex; gap: 14px;
+  align-items: center; cursor: pointer; position: relative; transition: filter .1s; }
+.phonecard:hover { filter: brightness(1.08); }
+.phonecard:active { filter: brightness(.92); }
+.phonecard.problem { background: var(--danger); }
+.phonecard svg { width: 32px; height: 32px; flex: none; }
+.phonecard .k { font-size: 12px; opacity: .85; }
+.phonecard .v { font-size: 18px; line-height: 1.25; }
+.phonecard .d { font-size: 12px; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
 
-/* lists */
-.group { font-size: 13px; color: var(--accent); margin: 18px 18px 4px; text-transform: lowercase; font-weight: 600; }
-.item { display: flex; align-items: center; gap: 16px; padding: 9px 18px; cursor: pointer; position: relative;
-  transition: background .08s, transform .08s; }
-.item:hover { background: #141414; }
-.item:active { transform: scale(.985); background: #1d1d1d; }
-.item .ico { width: 30px; height: 30px; color: var(--accent); flex: none; }
-.item .txt { min-width: 0; flex: 1; }
-.item .title { font-size: 17px; line-height: 1.25; }
-.item .sub { font-size: 13px; color: var(--sub); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.item .done { font-size: 12px; color: var(--ok); }
-.item.disabled { cursor: default; }
-.item.disabled .ico, .item.disabled .title { color: var(--dim); }
-.item.disabled:hover { background: none; }
-.badge { font-size: 11px; padding: 1px 6px; border: 1px solid var(--sub); color: var(--sub); margin-left: 8px; vertical-align: 2px; }
-.badge.ok { border-color: var(--ok); color: var(--ok); }
+.navlist { flex: 1; overflow-y: auto; padding: 4px 0; }
+.navitem { display: flex; align-items: center; gap: 16px; height: 44px; padding: 0 20px; cursor: pointer; position: relative; color: var(--text); }
+.navitem:hover { background: rgba(255,255,255,.06); }
+.navitem:active { background: rgba(255,255,255,.03); }
+.navitem svg { width: 18px; height: 18px; flex: none; }
+.navitem.sel { font-weight: 600; color: var(--fg); }
+.navitem.sel::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 4px; background: var(--accent); }
+.navitem .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-left: auto; animation: pulse 1.2s infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+.navfoot { padding: 12px 20px 16px; font-size: 12px; color: var(--dim); }
 
-/* task page */
-.log { padding: 0 18px; font-size: 14px; }
-.ln { padding: 3px 0 3px 22px; position: relative; line-height: 1.35; white-space: pre-wrap; word-break: break-word; user-select: text; }
-.ln::before { position: absolute; left: 0; top: 3px; width: 16px; text-align: center; font-weight: 700; }
-.ln.step { padding-left: 0; margin-top: 14px; font-size: 20px; font-weight: 300; color: var(--fg); text-transform: lowercase; }
-.ln.ok::before { content: "✓"; color: var(--ok); }
-.ln.warn { color: #ffd27a; } .ln.warn::before { content: "!"; color: var(--warn); }
-.ln.error { color: #ff8a7a; } .ln.error::before { content: "×"; color: var(--err); }
-.ln.info { color: #ddd; }
-.ln.detail { color: #777; font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace; font-size: 12px; padding-left: 22px; display: none; }
-.showdetail .ln.detail { display: block; }
-.block { margin: 8px 0 8px 0; background: var(--panel); border-left: 3px solid var(--accent); padding: 8px 12px; }
-.block h4 { margin: 0 0 4px; font-size: 13px; font-weight: 600; color: var(--sub); text-transform: lowercase; }
-.block pre { margin: 0; font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace; font-size: 12.5px; white-space: pre-wrap; word-break: break-word; user-select: text; }
-.progress { padding: 8px 18px 0; display: none; }
+main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.page { flex: 1; min-height: 0; overflow-y: auto; padding: 28px 40px 40px; scrollbar-width: thin; scrollbar-color: #4a4a4a transparent; }
+.page.enter { animation: enter .28s cubic-bezier(.1,.9,.2,1); }
+@keyframes enter { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.wrap { max-width: 1120px; }
+h1 { font-size: 28px; font-weight: 300; color: var(--fg); margin: 0 0 6px; letter-spacing: -.01em; }
+h2 { font-size: 20px; font-weight: 400; color: var(--fg); margin: 0 0 12px; }
+.lead { color: var(--sub); margin: 0 0 24px; max-width: 760px; }
+.section { margin-top: 32px; }
+
+/* ---------------------------------------------------------------- install page */
+.modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.mode { background: var(--card); padding: 20px; display: flex; flex-direction: column; border: 1px solid transparent; position: relative; }
+.mode:not(.locked):hover { border-color: #4a4a4a; }
+.mhead { display: flex; gap: 14px; align-items: center; margin-bottom: 16px; }
+.mico { width: 44px; height: 44px; background: var(--accent); color: #fff; display: grid; place-items: center; flex: none; }
+.mico svg { width: 24px; height: 24px; }
+.mode.locked .mico { background: #3a3a3a; color: var(--dim); }
+.mtitle { font-size: 20px; color: var(--fg); line-height: 1.2; }
+.mtag { font-size: 12px; color: var(--ok); }
+.mode.locked .mtag { color: var(--sub); }
+.mode dl { margin: 0 0 18px; flex: 1; }
+.mode dt { font-size: 12px; color: var(--sub); margin-top: 10px; }
+.mode dd { margin: 2px 0 0; color: var(--text); }
+.mode.locked dd { color: var(--sub); }
+.lockmsg { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--sub); background: #1e1e1e; padding: 10px 12px; }
+.lockmsg svg { width: 16px; height: 16px; flex: none; margin-top: 2px; }
+
+.cols { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; margin-top: 16px; }
+.card { background: var(--card); padding: 20px; }
+.steps { list-style: none; margin: 0; padding: 0; }
+.steps li { display: flex; gap: 14px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); }
+.steps li:first-child { border-top: 0; padding-top: 0; }
+.snum { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--dim); display: grid; place-items: center; font-size: 12px;
+  color: var(--sub); flex: none; }
+.steps li.done .snum { background: var(--ok); border-color: var(--ok); color: #000; }
+.steps li.next .snum { border-color: var(--accent); color: var(--fg); }
+.steps li.future .snum { border-style: dashed; }
+.stitle { color: var(--fg); }
+.steps li.future .stitle { color: var(--sub); }
+.ssub { font-size: 12px; color: var(--sub); }
+.reqs { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; }
+.reqs .k { color: var(--text); white-space: nowrap; }
+.reqs .v { color: var(--sub); word-break: break-word; }
+.reqs .v.bad { color: var(--warn); }
+.reqs .v.good::before { content: "✓ "; color: var(--ok); }
+.reqs .v.bad::before { content: "! "; }
+
+/* ---------------------------------------------------------------- tools page */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px; }
+.row { display: flex; gap: 16px; align-items: center; background: var(--card); padding: 14px 16px; cursor: pointer; border: 1px solid transparent;
+  transition: background .08s; min-height: 72px; }
+.row:hover { background: var(--card-hi); border-color: #444; }
+.row:active { background: #242424; }
+.row .ico { width: 24px; height: 24px; color: var(--accent); flex: none; }
+.row .txt { min-width: 0; flex: 1; }
+.row .title { color: var(--fg); font-size: 15px; }
+.row .sub { font-size: 12px; color: var(--sub); }
+.row .done { font-size: 12px; color: var(--ok); }
+.row.busy { opacity: .5; cursor: default; }
+.group { font-size: 14px; font-weight: 600; color: var(--fg); margin: 28px 0 10px; }
+.group:first-of-type { margin-top: 8px; }
+
+/* ---------------------------------------------------------------- buttons */
+.btn { background: var(--button); border: 2px solid transparent; padding: 5px 20px; min-width: 120px; cursor: pointer; font-size: 14px; color: var(--fg); }
+.btn:hover { border-color: #7a7a7a; }
+.btn:active { background: #555; }
+.btn.primary { background: var(--accent); }
+.btn.primary:hover { border-color: rgba(255,255,255,.45); }
+.btn.danger { background: var(--danger); }
+.btn:disabled { opacity: .4; cursor: default; border-color: transparent; }
+.mode .btn { align-self: flex-start; }
+
+/* ---------------------------------------------------------------- task page */
+#task { display: flex; flex-direction: column; overflow: hidden; }
+.taskhead { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.taskhead h1 { flex: 1; margin: 0; }
+.cmdbar { display: flex; gap: 2px; }
+.cmd { background: none; border: 0; display: flex; align-items: center; gap: 8px; padding: 8px 14px; cursor: pointer; color: var(--text); }
+.cmd:hover { background: rgba(255,255,255,.08); }
+.cmd:active { background: rgba(255,255,255,.04); }
+.cmd svg { width: 16px; height: 16px; }
+.cmd.on { color: var(--accent); }
+.progress { margin-top: 14px; display: none; }
 .progress.on { display: block; }
-.bar { height: 4px; background: #333; overflow: hidden; }
+.bar { height: 4px; background: #3a3a3a; overflow: hidden; }
 .bar b { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s; }
 .plabel { font-size: 12px; color: var(--sub); margin-top: 4px; display: flex; justify-content: space-between; gap: 8px; }
-.statusline { font-size: 13px; color: var(--sub); padding: 6px 18px 0; min-height: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* W10M progress dots */
-.dots { position: relative; height: 6px; overflow: hidden; margin: 6px 0 0; display: none; }
+.dots { position: relative; height: 6px; overflow: hidden; margin-top: 14px; display: none; }
 .dots.on { display: block; }
 .dots i { position: absolute; top: 0; left: -8px; width: 4px; height: 4px; border-radius: 50%; background: var(--accent);
   animation: dot 3.2s infinite cubic-bezier(.2,.6,.8,.4); }
 .dots i:nth-child(2) { animation-delay: .18s; } .dots i:nth-child(3) { animation-delay: .36s; }
 .dots i:nth-child(4) { animation-delay: .54s; } .dots i:nth-child(5) { animation-delay: .72s; }
 @keyframes dot { 0% { left: -8px; opacity: 0; } 10% { opacity: 1; } 35% { left: 45%; } 65% { left: 55%; } 90% { opacity: 1; } 100% { left: 102%; opacity: 0; } }
+.statusline { font-size: 13px; color: var(--sub); margin-top: 6px; min-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.logpanel { flex: 1; min-height: 0; overflow-y: auto; background: #111; border: 1px solid var(--line); margin-top: 8px; padding: 12px 18px 18px;
+  scrollbar-width: thin; scrollbar-color: #4a4a4a transparent; }
+.log { font-size: 14px; }
+.ln { padding: 2px 0 2px 22px; position: relative; white-space: pre-wrap; word-break: break-word; user-select: text; }
+.ln::before { position: absolute; left: 0; top: 2px; width: 16px; text-align: center; font-weight: 700; }
+.ln.step { padding-left: 0; margin-top: 16px; font-size: 18px; font-weight: 400; color: var(--fg); }
+.ln.step:first-child { margin-top: 0; }
+.ln.ok::before { content: "✓"; color: var(--ok); }
+.ln.warn { color: #ffe98a; } .ln.warn::before { content: "!"; color: var(--warn); }
+.ln.error { color: var(--err); } .ln.error::before { content: "×"; color: var(--err); }
+.ln.info { color: var(--text); }
+.ln.detail { color: #808080; font-family: var(--mono); font-size: 12px; display: none; }
+.showdetail .ln.detail { display: block; }
+.block { margin: 8px 0; background: var(--card); border-left: 3px solid var(--accent); padding: 8px 12px; }
+.block h4 { margin: 0 0 4px; font-size: 12px; font-weight: 600; color: var(--sub); }
+.block pre { margin: 0; font-family: var(--mono); font-size: 12.5px; white-space: pre-wrap; word-break: break-word; user-select: text; color: var(--text); }
 
-/* app bar */
-.appbar { flex: none; background: var(--panel); display: flex; justify-content: center; gap: 30px; padding: 8px 0 6px; }
-.abtn { background: none; border: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; font-size: 11px; color: #ddd; min-width: 64px; }
-.abtn .circ { width: 38px; height: 38px; border: 2px solid #ddd; border-radius: 50%; display: grid; place-items: center; }
-.abtn svg { width: 18px; height: 18px; }
-.abtn:active .circ { background: #ddd; color: #000; }
-.abtn.hidden { display: none; }
+/* ---------------------------------------------------------------- settings */
+.setsec { margin-bottom: 30px; max-width: 760px; }
+.radio { display: flex; gap: 12px; align-items: flex-start; padding: 6px 0; cursor: pointer; }
+.radio .dotr { width: 20px; height: 20px; border: 2px solid #ccc; border-radius: 50%; flex: none; margin-top: 1px; position: relative; }
+.radio.on .dotr { border-color: var(--accent); }
+.radio.on .dotr::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--fg); }
+.radio:hover .dotr { border-color: #fff; }
+.swatches { display: grid; grid-template-columns: repeat(7, 48px); gap: 4px; }
+.swatch { width: 48px; height: 48px; cursor: pointer; border: 2px solid transparent; position: relative; }
+.swatch:hover { border-color: rgba(255,255,255,.6); }
+.swatch.on { border-color: #fff; }
+.swatch.on::after { content: "✓"; position: absolute; right: 3px; bottom: 0; font-size: 13px; color: #fff; }
+.about { color: var(--sub); font-size: 13px; line-height: 1.6; user-select: text; }
+.about b { color: var(--text); font-weight: 600; }
+.path { font-family: var(--mono); font-size: 12.5px; color: var(--text); user-select: text; word-break: break-all; }
 
-/* dialog */
-.veil { position: absolute; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: flex-start; z-index: 10; }
-.veil.hidden { display: none; }
-.dialog { width: 100%; background: var(--dialog); padding: 18px 18px 16px; max-height: 100%; overflow-y: auto;
-  animation: drop .25s cubic-bezier(.1,.9,.2,1); }
-@keyframes drop { from { transform: translateY(-30px); opacity: 0; } to { transform: none; opacity: 1; } }
-.dialog h2 { font-size: 21px; font-weight: 400; margin: 0 0 8px; }
-.dialog p { margin: 0 0 12px; color: #ddd; white-space: pre-wrap; line-height: 1.4; user-select: text; }
-.dialog .item { padding: 9px 4px; }
-.dialog .item .title { font-size: 16px; }
-.btns { display: flex; gap: 10px; margin-top: 16px; }
-.btn { flex: 1; background: var(--button); border: 2px solid transparent; padding: 7px 10px; cursor: pointer; font-size: 15px; }
-.btn:hover { border-color: #666; }
-.btn.primary { background: var(--accent); }
-.btn.danger { background: #a20025; }
-.btn:disabled { opacity: .4; cursor: default; }
-.field { margin: 12px 0; }
-.field label { display: block; font-size: 15px; }
-.field .fsub { font-size: 12px; color: var(--sub); margin-top: 1px; }
-input[type=text], input[type=number] { width: 100%; background: #fff; color: #000; border: 2px solid #999; padding: 6px 8px;
+/* ---------------------------------------------------------------- dialog */
+.veil { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: grid; place-items: center; z-index: 10; padding: 24px; }
+.dialog { width: 100%; max-width: 560px; max-height: calc(100vh - 48px); overflow-y: auto; background: var(--dialog); border: 1px solid #444;
+  padding: 22px 24px 20px; box-shadow: 0 20px 60px rgba(0,0,0,.6); animation: pop .2s cubic-bezier(.1,.9,.2,1); }
+.dialog.wide { max-width: 680px; }
+@keyframes pop { from { transform: scale(1.04); opacity: 0; } to { transform: none; opacity: 1; } }
+.dialog h2 { font-size: 20px; margin: 0 0 10px; }
+.dialog p { margin: 0 0 12px; color: var(--text); white-space: pre-wrap; user-select: text; }
+.dialog .opt { display: flex; gap: 12px; padding: 10px 12px; margin: 0 -12px; cursor: pointer; }
+.dialog .opt:hover { background: rgba(255,255,255,.06); }
+.dialog .opt.disabled { cursor: default; opacity: .45; }
+.dialog .opt.disabled:hover { background: none; }
+.dialog .opt .title { color: var(--fg); }
+.dialog .opt .sub { font-size: 12px; color: var(--sub); }
+.badge { font-size: 11px; padding: 0 6px; border: 1px solid var(--sub); color: var(--sub); margin-left: 8px; vertical-align: 1px; }
+.btns { display: flex; gap: 8px; margin-top: 22px; justify-content: flex-end; }
+.btns .btn { flex: 0 1 50%; }
+.field { margin: 14px 0; }
+.field > label { display: block; color: var(--fg); }
+.fsub { font-size: 12px; color: var(--sub); margin-top: 1px; }
+input[type=text], input[type=number] { width: 100%; background: #1a1a1a; color: var(--fg); border: 2px solid #666; padding: 5px 8px;
   font: inherit; margin-top: 6px; outline: none; user-select: text; }
-input[type=text]:focus, input[type=number]:focus { border-color: var(--accent); }
-.toggle { display: flex; align-items: center; gap: 12px; margin-top: 6px; cursor: pointer; }
-.sw { width: 44px; height: 20px; border: 2px solid #ddd; border-radius: 10px; position: relative; flex: none; transition: background .12s; }
-.sw::after { content: ""; position: absolute; top: 3px; left: 4px; width: 10px; height: 10px; border-radius: 50%; background: #ddd; transition: left .12s; }
+input[type=text]:hover, input[type=number]:hover { border-color: #888; }
+input[type=text]:focus, input[type=number]:focus { border-color: var(--accent); background: #fff; color: #000; }
+.toggle { display: inline-flex; align-items: center; gap: 12px; margin-top: 6px; cursor: pointer; }
+.sw { width: 44px; height: 20px; border: 2px solid #ccc; border-radius: 10px; position: relative; flex: none; transition: background .12s; }
+.sw::after { content: ""; position: absolute; top: 3px; left: 4px; width: 10px; height: 10px; border-radius: 50%; background: #ccc; transition: left .12s; }
 .toggle.on .sw { background: var(--accent); border-color: var(--accent); }
 .toggle.on .sw::after { left: 26px; background: #fff; }
 .toggle.disabled { opacity: .4; cursor: default; }
-.radio { display: flex; gap: 12px; align-items: flex-start; padding: 7px 0; cursor: pointer; }
-.radio .dotr { width: 20px; height: 20px; border: 2px solid #ddd; border-radius: 50%; flex: none; margin-top: 1px; position: relative; }
-.radio.on .dotr::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: #fff; }
-.radio.on .dotr { border-color: var(--accent); background: var(--accent); }
-.swatches { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 18px; }
-.swatch { width: 52px; height: 52px; cursor: pointer; border: 3px solid transparent; }
-.swatch.on { border-color: #fff; }
-.about { padding: 0 18px; color: var(--sub); font-size: 13px; line-height: 1.5; user-select: text; }
-.about b { color: #ddd; font-weight: 600; }
-.req { display: flex; gap: 8px; padding: 2px 18px; font-size: 13px; color: var(--sub); }
-.req .k { color: #ddd; min-width: 96px; }
-.req .bad { color: var(--warn); }
+
+/* ---------------------------------------------------------------- narrow windows */
+@media (max-width: 1100px) {
+  .modes { grid-template-columns: 1fr; }
+  .cols { grid-template-columns: 1fr; }
+}
+@media (max-width: 820px) {
+  nav { width: 52px; }
+  .brand .name, .navitem span, .navfoot, .phonecard div { display: none; }
+  .brand { padding: 18px 12px 14px; }
+  .phonecard { margin: 4px 6px 12px; padding: 8px; justify-content: center; }
+  .phonecard svg { width: 24px; height: 24px; }
+  .navitem { padding: 0 17px; }
+  .page { padding: 22px 20px 30px; }
+}
 </style>
 </head>
 <body>
 <div id="app">
-  <div class="statusbar"><div class="left"><span class="signal"><i style="height:3px"></i><i style="height:5px"></i><i style="height:7px"></i><i style="height:9px"></i><i class="off" style="height:11px"></i></span><span id="sbmode"></span></div>
-    <div class="left"><span class="battery"><b></b></span><span id="clock"></span></div></div>
-
-  <!-- home -->
-  <section class="page" id="home">
-    <div class="header"><div class="apptitle"><span id="hicon"></span><span>Lumia 1520 · Android</span></div>
-      <div class="pagetitle" data-t="installer">installer</div></div>
-    <div class="scroll" id="homelist"></div>
-  </section>
-
-  <!-- task -->
-  <section class="page hidden" id="task">
-    <div class="header"><div class="apptitle"><span>Lumia 1520 · Android</span></div>
-      <div class="pagetitle" id="tasktitle"></div></div>
-    <div class="progress" id="prog"><div class="bar"><b id="pbar"></b></div><div class="plabel"><span id="plabel"></span><span id="ppct"></span></div></div>
-    <div class="dots" id="dots"><i></i><i></i><i></i><i></i><i></i></div>
-    <div class="statusline" id="statusline"></div>
-    <div class="scroll" id="logscroll"><div class="log" id="log"></div></div>
-    <div class="appbar">
-      <button class="abtn" id="bStop"><span class="circ" data-icon="stop"></span><span data-t="stop">stop</span></button>
-      <button class="abtn" id="bDetail"><span class="circ" data-icon="list"></span><span data-t="details">details</span></button>
-      <button class="abtn hidden" id="bBack"><span class="circ" data-icon="back"></span><span data-t="back">back</span></button>
+  <nav>
+    <div class="brand"><span class="logo" data-icon="logo"></span>
+      <div class="name">Lumia 1520 <small data-t="appsub">Android installer</small></div></div>
+    <div class="phonecard" id="phonecard"></div>
+    <div class="navlist">
+      <div class="navitem" data-nav="install"><span data-icon="wizard"></span><span data-t="n_install">Install</span></div>
+      <div class="navitem" data-nav="tools"><span data-icon="tools"></span><span data-t="n_tools">Advanced tools</span></div>
+      <div class="navitem hidden" data-nav="task" id="navtask"><span data-icon="log"></span><span data-t="n_task">Activity</span></div>
+      <div class="navitem" data-nav="settings"><span data-icon="gear"></span><span data-t="settings">Settings</span></div>
     </div>
-  </section>
+    <div class="navfoot" id="navfoot"></div>
+  </nav>
 
-  <!-- settings -->
-  <section class="page hidden" id="settings">
-    <div class="header"><div class="apptitle"><span>Lumia 1520 · Android</span></div>
-      <div class="pagetitle" data-t="settings">settings</div></div>
-    <div class="scroll" id="setlist"></div>
-    <div class="appbar"><button class="abtn" id="bSetBack"><span class="circ" data-icon="back"></span><span data-t="back">back</span></button></div>
-  </section>
+  <main>
+    <section class="page" id="install"></section>
+    <section class="page hidden" id="tools"></section>
+    <section class="page hidden" id="task">
+      <div class="taskhead"><h1 id="tasktitle"></h1>
+        <div class="cmdbar">
+          <button class="cmd" id="bDetail"><span data-icon="list"></span><span data-t="details">Details</span></button>
+          <button class="cmd" id="bStop"><span data-icon="stop"></span><span data-t="stop">Stop</span></button>
+          <button class="cmd hidden" id="bBack"><span data-icon="back"></span><span data-t="back">Back</span></button>
+        </div></div>
+      <div class="progress" id="prog"><div class="bar"><b id="pbar"></b></div><div class="plabel"><span id="plabel"></span><span id="ppct"></span></div></div>
+      <div class="dots" id="dots"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="statusline" id="statusline"></div>
+      <div class="logpanel" id="logscroll"><div class="log" id="log"></div></div>
+    </section>
+    <section class="page hidden" id="settings"></section>
+  </main>
 
   <div class="veil hidden" id="veil"><div class="dialog" id="dialog"></div></div>
 </div>
@@ -201,6 +280,7 @@ input[type=text]:focus, input[type=number]:focus { border-color: var(--accent); 
 "use strict";
 const TOKEN = new URLSearchParams(location.search).get("t") || "";
 const ICONS = {
+  logo: '<rect x="6.5" y="2.5" width="11" height="19" rx="1"/><path d="M9.5 9.5 12 7l2.5 2.5M12 7v7"/><path d="M10.5 18.5h3"/>',
   phone: '<rect x="6.5" y="2.5" width="11" height="19" rx="1.2"/><path d="M10.5 18.5h3"/>',
   wizard: '<path d="M4 20 15 9"/><path d="m14 6 1-3 1 3 3 1-3 1-1 3-1-3-3-1z"/><path d="M19 13l.6 1.4L21 15l-1.4.6L19 17l-.6-1.4L17 15l1.4-.6z"/>',
   backup: '<path d="M4 4h13l3 3v13H4z"/><path d="M8 4v5h7V4"/><rect x="7.5" y="13" width="9" height="7"/>',
@@ -210,26 +290,82 @@ const ICONS = {
   play: '<circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l6-3.5z"/>',
   flash: '<path d="M12 3v11"/><path d="m7.5 9.5 4.5 4.5 4.5-4.5"/><path d="M4 15v5h16v-5"/>',
   restore: '<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/><path d="M12 8v4.5l3 2"/>',
+  refresh: '<path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4.5h-4.5"/>',
+  erase: '<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/>',
   log: '<path d="M3 12h4l2.5-6 4 12 2.5-6h5"/>',
   tools: '<path d="M14.5 6.5a4 4 0 0 0 5 5L12 19a2.1 2.1 0 0 1-3-3l7.5-7.5"/><path d="M14.5 6.5 17 4l3 3-2.5 2.5"/>',
   gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4 5.3 5.3"/><circle cx="12" cy="12" r="6.5"/>',
   lock: '<rect x="5" y="10.5" width="14" height="10"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>',
   memory: '<path d="M4 7h16v10H4z"/><path d="M8 17v3M12 17v3M16 17v3M8 4v3M12 4v3M16 4v3"/>',
-  stop: '<rect x="7" y="7" width="10" height="10"/>',
+  stop: '<rect x="6" y="6" width="12" height="12"/>',
   list: '<path d="M4 6h16M4 12h16M4 18h10"/>',
   back: '<path d="M19 12H5"/><path d="m11 6-6 6 6 6"/>',
-  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>',
-  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
   exit: '<path d="M14 4h6v16h-6"/><path d="M10 8l-4 4 4 4M6 12h10"/>',
+  diag: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
 };
-const svg = (n) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${ICONS[n] || ""}</svg>`;
+const svg = (n) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ICONS[n] || ""}</svg>`;
 
 const T = {
-  it: { installer: "installer", settings: "impostazioni", stop: "stop", details: "dettagli", back: "indietro",
-    phone: "telefono", g_install: "installazione", g_steps: "strumenti avanzati", g_test: "prove con lk1st", g_maint: "manutenzione",
-    full: "Completa", full_s: "Windows resta intatto, si ferma a lk1st",
-    clean: "Pulita", clean_s: "TWRP, formattazione dei dati e ROM. Arriva con le partizioni Android (fase 2)",
-    update: "Aggiornamento", update_s: "TWRP e ROM, dati conservati. Arriva con la prima ROM che si avvia",
+  en: {
+    appsub: "Android installer", n_install: "Install", n_tools: "Advanced tools", n_task: "Activity", settings: "Settings",
+    phone: "Phone", details: "Details", stop: "Stop", back: "Back",
+    install_t: "Install Android", install_l: "Pick a mode. The installer goes through its steps in order, checks every write and resumes where it stopped.",
+    before: "Phone before", does: "What happens", data: "Your data", available: "Available", later: "Coming with phase 2",
+    start: "Start", resume: "Continue", again: "Run again", busy: "A task is running",
+    full: "Full install", full_before: "Windows 10 Mobile, unlocked with WPinternals, in mass storage mode",
+    full_does: "Backup, firmware from Windows, BootShim + lk1st on EFIESP, restart and lk1st check in fastboot",
+    full_data: "Windows stays intact (for now)",
+    clean: "Clean install", clean_before: "lk1st and the Android partitions already in place",
+    clean_does: "TWRP, format data, ROM", clean_data: "All Android data erased",
+    update: "Update", update_before: "This ROM already installed", update_does: "TWRP, ROM", update_data: "Kept",
+    locked: "Needs the Android partitions (phase 2, layout not final yet) and a ROM that boots.",
+    progress_t: "Full install progress",
+    s_backup: "Backup", s_backup_s: "GPT, small partitions, optional full image",
+    s_firmware: "Firmware from Windows", s_firmware_s: "ADSP, Wi-Fi, modem, Venus, ACPI, registry",
+    s_chain: "Boot chain", s_chain_s: "BootShim + lk1st on EFIESP, BCD entry",
+    s_lk1st: "lk1st check", s_lk1st_s: "restart, fastboot, lk1st log",
+    s_phase2: "Android partitions and ROM", s_phase2_s: "phase 2, not available yet",
+    next: "next", done_on: "done", req: "Requirements", kit: "Kit files",
+    tools_t: "Advanced tools", tools_l: "The single steps, for development and recovery. The full install runs the first four in order.",
+    g_steps: "Install steps", g_test: "Tests with lk1st", g_maint: "Maintenance",
+    backup: "Backup", backup_s: "GPT, small partitions and full image",
+    firmware: "Firmware", firmware_s: "ADSP, Wi-Fi, modem, Venus, ACPI and registry from Windows",
+    chain: "Boot chain", chain_s: "BootShim + lk1st on EFIESP, BCD entry",
+    verify: "Check lk1st", verify_s: "restart, fastboot and lk1st log",
+    boot: "Boot in RAM", boot_s: "fastboot boot of K1 or of a boot.img from a build",
+    ramoops: "Previous boot log", ramoops_s: "ram console and lk1st log after a hang",
+    flash: "Write partition", flash_s: "fastboot flash of boot, recovery, system…",
+    restore: "Restore EFIESP", restore_s: "back to how it was before the install",
+    diag: "Diagnostics", diag_s: "USB, fastboot, partitions, requirements",
+    tools: "Platform Tools", tools_s: "fastboot and adb",
+    wizard: "Full install",
+    lang: "Language", accent: "Accent colour", work: "Data folder", work_s: "Backups, firmware, logs and progress. They contain personal data: do not publish them.",
+    about: "About", quit: "Quit", quit_s: "Closes the installer.",
+    ok: "OK", cancel: "Cancel", type_word: "Type {w} to confirm", finished: "Finished", failed: "Stopped", cancelled: "Cancelled",
+    admin_no: "without administrator rights", on: "On", off: "Off", bye: "The installer has closed. You can close this window.",
+  },
+  it: {
+    appsub: "Installer Android", n_install: "Installa", n_tools: "Strumenti avanzati", n_task: "Attività", settings: "Impostazioni",
+    phone: "Telefono", details: "Dettagli", stop: "Interrompi", back: "Indietro",
+    install_t: "Installa Android", install_l: "Scegli una modalità. L'installer esegue i passi in ordine, verifica ogni scrittura e riprende da dove si era fermato.",
+    before: "Telefono prima", does: "Cosa fa", data: "I tuoi dati", available: "Disponibile", later: "Con la fase 2",
+    start: "Inizia", resume: "Continua", again: "Ripeti", busy: "Un'operazione è in corso",
+    full: "Installazione completa", full_before: "Windows 10 Mobile, sbloccato con WPinternals, in mass storage",
+    full_does: "Backup, firmware da Windows, BootShim + lk1st su EFIESP, riavvio e verifica di lk1st in fastboot",
+    full_data: "Windows resta intatto (per ora)",
+    clean: "Installazione pulita", clean_before: "lk1st e partizioni Android già presenti",
+    clean_does: "TWRP, formattazione dei dati, ROM", clean_data: "Tutti i dati Android cancellati",
+    update: "Aggiornamento", update_before: "Questa ROM già installata", update_does: "TWRP, ROM", update_data: "Conservati",
+    locked: "Servono le partizioni Android (fase 2, layout non ancora definitivo) e una ROM che si avvia.",
+    progress_t: "Avanzamento dell'installazione completa",
+    s_backup: "Backup", s_backup_s: "GPT, partizioni piccole, immagine completa facoltativa",
+    s_firmware: "Firmware da Windows", s_firmware_s: "ADSP, Wi-Fi, modem, Venus, ACPI, registro",
+    s_chain: "Catena di avvio", s_chain_s: "BootShim + lk1st su EFIESP, voce nel BCD",
+    s_lk1st: "Verifica lk1st", s_lk1st_s: "riavvio, fastboot, log di lk1st",
+    s_phase2: "Partizioni Android e ROM", s_phase2_s: "fase 2, non ancora disponibile",
+    next: "prossimo", done_on: "fatto", req: "Requisiti", kit: "File del kit",
+    tools_t: "Strumenti avanzati", tools_l: "I singoli passi, per sviluppo e ripristino. L'installazione completa esegue i primi quattro in ordine.",
+    g_steps: "Passi dell'installazione", g_test: "Prove con lk1st", g_maint: "Manutenzione",
     backup: "Backup", backup_s: "GPT, partizioni piccole e immagine completa",
     firmware: "Firmware", firmware_s: "ADSP, Wi-Fi, modem, Venus, ACPI e registro da Windows",
     chain: "Catena di avvio", chain_s: "BootShim + lk1st su EFIESP, voce nel BCD",
@@ -239,45 +375,30 @@ const T = {
     flash: "Scrivi partizione", flash_s: "fastboot flash di boot, recovery, system…",
     restore: "Ripristino EFIESP", restore_s: "torna allo stato prima dell'installazione",
     diag: "Diagnostica", diag_s: "USB, fastboot, partizioni, requisiti",
-    tools: "Strumenti", tools_s: "fastboot e adb (Platform Tools)",
-    settings_s: "lingua, colore, informazioni",
-    done_on: "fatto", running: "in corso", lang: "Lingua", accent: "Colore d'accento", about: "Informazioni",
-    quit: "Esci", quit_s: "chiude l'installer", req: "Requisiti", work: "Cartella dati",
-    ok: "ok", cancel: "annulla", type_word: "Scrivi {w} per confermare", finished: "completato", failed: "interrotto",
-    cancelled: "annullato", seen_now: "aggiornato", admin_no: "senza permessi di amministratore",
-    next_hint: "prossimo passo: ", all_done: "catena installata e verificata", on: "Attivato", off: "Disattivato",
-    bye: "Installer chiuso. Puoi chiudere questa finestra." },
-  en: { installer: "installer", settings: "settings", stop: "stop", details: "details", back: "back",
-    phone: "phone", g_install: "install", g_steps: "advanced tools", g_test: "tests with lk1st", g_maint: "maintenance",
-    full: "Full", full_s: "Windows stays intact, stops at lk1st",
-    clean: "Clean", clean_s: "TWRP, format data and ROM. Comes with the Android partitions (phase 2)",
-    update: "Update", update_s: "TWRP and ROM, data kept. Comes with the first ROM that boots",
-    backup: "Backup", backup_s: "GPT, small partitions and full image",
-    firmware: "Firmware", firmware_s: "ADSP, Wi-Fi, modem, Venus, ACPI and registry from Windows",
-    chain: "Boot chain", chain_s: "BootShim + lk1st on EFIESP, BCD entry",
-    verify: "Check lk1st", verify_s: "restart, fastboot and lk1st log",
-    boot: "Boot in RAM", boot_s: "fastboot boot of K1 or a boot.img from the build",
-    ramoops: "Previous boot log", ramoops_s: "ram console and lk1st log after a hang",
-    flash: "Write partition", flash_s: "fastboot flash of boot, recovery, system…",
-    restore: "Restore EFIESP", restore_s: "back to how it was before the install",
-    diag: "Diagnostics", diag_s: "USB, fastboot, partitions, requirements",
-    tools: "Tools", tools_s: "fastboot and adb (Platform Tools)",
-    settings_s: "language, colour, about",
-    done_on: "done", running: "running", lang: "Language", accent: "Accent colour", about: "About",
-    quit: "Quit", quit_s: "closes the installer", req: "Requirements", work: "Data folder",
-    ok: "ok", cancel: "cancel", type_word: "Type {w} to confirm", finished: "finished", failed: "stopped",
-    cancelled: "cancelled", seen_now: "updated", admin_no: "without administrator rights",
-    next_hint: "next step: ", all_done: "chain installed and checked", on: "On", off: "Off",
-    bye: "Installer closed. You can close this window." },
+    tools: "Platform Tools", tools_s: "fastboot e adb",
+    wizard: "Installazione completa",
+    lang: "Lingua", accent: "Colore d'accento", work: "Cartella dati", work_s: "Backup, firmware, log e avanzamento. Contengono dati personali: non pubblicarli.",
+    about: "Informazioni", quit: "Esci", quit_s: "Chiude l'installer.",
+    ok: "OK", cancel: "Annulla", type_word: "Scrivi {w} per confermare", finished: "Completato", failed: "Interrotto", cancelled: "Annullato",
+    admin_no: "senza permessi di amministratore", on: "Attivato", off: "Disattivato", bye: "L'installer è stato chiuso. Puoi chiudere questa finestra.",
+  },
 };
-const ACCENTS = ["#0078d7", "#0063b1", "#00b7c3", "#008a00", "#60a917", "#e3008c", "#a20025", "#e51400",
-                 "#fa6800", "#f0a30a", "#6a00ff", "#aa00ff", "#647687", "#825a2c"];
+const ACCENTS = ["#0078d7", "#0063b1", "#8e8cd8", "#6b69d6", "#0099bc", "#00b7c3", "#00b294",
+                 "#10893e", "#498205", "#ca5010", "#da3b01", "#e81123", "#c30052", "#881798"];
+const MODES = [["full", "wizard"], ["clean", "erase"], ["update", "refresh"]];
+const STEPS = ["backup", "firmware", "chain", "lk1st"];
+const TOOLS = [
+  ["g_steps", [["backup", "backup"], ["firmware", "chip"], ["chain", "chain"], ["verify", "check"]]],
+  ["g_test", [["boot", "play"], ["ramoops", "memory"], ["flash", "flash"]]],
+  ["g_maint", [["restore", "restore"], ["diag", "diag"], ["tools", "tools"]]],
+];
 
-let S = { lang: "en", phone: {}, done: {}, requirements: [], kit: [] };
-let lastEvent = 0, current = "home", taskName = null, polling = false, prompt = null;
-const t = (k) => (T[S.lang] || T.en)[k] || k;
+let S = { lang: "en", phone: {}, done: {}, requirements: [], kit: [], modes: {} };
+let lastEvent = 0, current = "install", taskName = null, polling = false, prompt = null, rendered = {};
+const t = (k) => (T[S.lang] || T.en)[k] ?? T.en[k] ?? k;
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmtDate = (s) => (s ? s.replace("T", " ").slice(0, 16) : "");
 
 function api(path, body) {
   const opt = body === undefined ? {} : { method: "POST", headers: { "X-Token": TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(body) };
@@ -285,77 +406,143 @@ function api(path, body) {
   return fetch(path + (body === undefined ? sep + "t=" + encodeURIComponent(TOKEN) : ""), opt).then((r) => r.json());
 }
 
-try { const a = localStorage.getItem("accent"); if (a) document.documentElement.style.setProperty("--accent", a); } catch (e) {}
+function setAccent(a) { if (a) document.documentElement.style.setProperty("--accent", a); }
 
-function show(page) {
-  for (const p of ["home", "task", "settings"]) {
+function paintIcons(root) { (root || document).querySelectorAll("[data-icon]").forEach((el) => (el.innerHTML = svg(el.dataset.icon))); }
+function paintTexts() { document.querySelectorAll("[data-t]").forEach((el) => (el.textContent = t(el.dataset.t))); }
+
+// ---------------------------------------------------------------- navigation
+function go(page) {
+  for (const p of ["install", "tools", "task", "settings"]) {
     const el = $(p);
     if (p === page) { el.classList.remove("hidden"); el.classList.remove("enter"); void el.offsetWidth; el.classList.add("enter"); }
     else el.classList.add("hidden");
   }
   current = page;
+  document.querySelectorAll("[data-nav]").forEach((n) => n.classList.toggle("sel", n.dataset.nav === page));
+  render(true);
+}
+document.querySelectorAll("[data-nav]").forEach((n) => (n.onclick = () => go(n.dataset.nav)));
+
+function render(force) {
+  renderNav();
+  const fn = { install: renderInstall, tools: renderTools, settings: renderSettings }[current];
+  if (!fn) return;
+  const key = JSON.stringify([current, S.lang, S.done, S.running, S.requirements, S.kit, S.modes, S.admin]);
+  if (!force && rendered[current] === key) return;
+  rendered[current] = key;
+  fn();
 }
 
-function tick() { const d = new Date(); $("clock").textContent = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
-setInterval(tick, 10000); tick();
-
-// ---------------------------------------------------------------- home
-const ITEMS = [
-  ["g_install"], ["full", "wizard"], ["clean", "flash"], ["update", "restore"],
-  ["g_steps"], ["backup", "backup"], ["firmware", "chip"], ["chain", "chain"], ["verify", "check"],
-  ["g_test"], ["boot", "play"], ["ramoops", "memory"], ["flash", "flash"],
-  ["g_maint"], ["restore", "restore"], ["diag", "log"], ["tools", "tools"], ["settings", "gear"],
-];
-const ORDER = ["backup", "firmware", "chain", "lk1st"];
-
-function fmtDate(s) { return s ? s.replace("T", " ").slice(0, 16) : ""; }
-
-let homeKey = "";
-function renderHome(force) {
-  const key = JSON.stringify([S.lang, S.phone && [S.phone.mode, S.phone.detail, S.phone.problem], S.done, S.running, S.admin]);
-  if (!force && key === homeKey && $("homelist").childElementCount) return;
-  homeKey = key;
-  $("hicon").innerHTML = svg("phone");
+function renderNav() {
   const ph = S.phone || {};
-  const next = ORDER.find((k) => !S.done[k]);
-  const nextName = { backup: t("backup"), firmware: t("firmware"), chain: t("chain"), lk1st: t("verify") }[next];
-  let h = `<div class="tile ${ph.problem ? "problem" : ""}" data-act="diag">${svg("phone")}<div>
-    <div class="t1">${t("phone")}</div><div class="t2">${esc(ph.text || "…")}</div>
-    <div class="t3">${esc(ph.problem || ph.detail || (S.admin ? "" : t("admin_no")))}</div></div></div>`;
-  for (const [key, icon] of ITEMS) {
-    const disabled = S.modes && key in S.modes && !S.modes[key];
-    if (!icon) { h += `<div class="group">${t(key)}</div>`; continue; }
-    let sub = t(key + "_s");
-    const stepKey = key === "verify" ? "lk1st" : key;
-    let done = S.done[stepKey] ? `<div class="done">${t("done_on")} ${fmtDate(S.done[stepKey])}</div>` : "";
-    if (key === "full") { sub = (next ? t("next_hint") + nextName.toLowerCase() : t("all_done")) + " · " + sub; done = ""; }
-    const icoHtml = disabled ? svg("lock") : svg(icon);
-    if (S.running === key) done = `<div class="done" style="color:var(--accent)">${t("running")}…</div>`;
-    h += `<div class="item ${disabled ? "disabled" : ""}" data-act="${disabled ? "" : key}">
-      <div class="ico">${icoHtml}</div><div class="txt"><div class="title">${t(key)}</div><div class="sub">${esc(sub)}</div>${done}</div></div>`;
+  const pc = $("phonecard");
+  pc.className = "phonecard" + (ph.problem ? " problem" : "");
+  pc.title = t("diag");
+  pc.innerHTML = `${svg("phone")}<div><div class="k">${t("phone")}</div><div class="v">${esc(ph.text || "…")}</div>
+    <div class="d">${esc(ph.problem || ph.detail || (S.admin ? "" : t("admin_no")))}</div></div>`;
+  const nt = $("navtask");
+  nt.classList.toggle("hidden", !taskName);
+  const pulse = nt.querySelector(".pulse");
+  if (S.running && !pulse) nt.insertAdjacentHTML("beforeend", '<i class="pulse"></i>');
+  if (!S.running && pulse) pulse.remove();
+  $("navfoot").textContent = `bandit-installer ${S.version || ""} · ${S.platform || ""}`;
+}
+$("phonecard").onclick = () => startTask("diag");
+
+// ---------------------------------------------------------------- install page
+function renderInstall() {
+  const doneCount = STEPS.filter((k) => S.done[k]).length;
+  const next = STEPS.find((k) => !S.done[k]);
+  let h = `<div class="wrap"><h1>${t("install_t")}</h1><p class="lead">${t("install_l")}</p><div class="modes">`;
+  for (const [key, icon] of MODES) {
+    const ready = S.modes ? S.modes[key] !== false : true;
+    const label = key === "full" ? (doneCount === 0 ? t("start") : doneCount < STEPS.length ? t("resume") : t("again")) : t("start");
+    h += `<div class="mode ${ready ? "" : "locked"}">
+      <div class="mhead"><span class="mico">${svg(ready ? icon : "lock")}</span>
+        <div><div class="mtitle">${t(key)}</div><div class="mtag">${ready ? t("available") : t("later")}</div></div></div>
+      <dl><dt>${t("before")}</dt><dd>${t(key + "_before")}</dd><dt>${t("does")}</dt><dd>${t(key + "_does")}</dd>
+        <dt>${t("data")}</dt><dd>${t(key + "_data")}</dd></dl>
+      ${ready ? `<button class="btn primary" data-run="${key}" ${S.running ? `disabled title="${t("busy")}"` : ""}>${label}</button>`
+              : `<div class="lockmsg">${svg("lock")}<span>${t("locked")}</span></div>`}</div>`;
   }
-  $("homelist").innerHTML = h;
-  $("sbmode").textContent = ph.mode && ph.mode !== "none" ? ph.mode : "";
+  h += `</div><div class="cols"><div class="card"><h2>${t("progress_t")}</h2><ol class="steps">`;
+  STEPS.forEach((k, i) => {
+    const d = S.done[k];
+    const cls = d ? "done" : k === next ? "next" : "";
+    h += `<li class="${cls}"><span class="snum">${d ? "✓" : i + 1}</span><div><div class="stitle">${t("s_" + k)}</div>
+      <div class="ssub">${d ? `${t("done_on")} ${fmtDate(d)}` : (k === next ? t("next") + " · " : "") + t("s_" + k + "_s")}</div></div></li>`;
+  });
+  h += `<li class="future"><span class="snum">5</span><div><div class="stitle">${t("s_phase2")}</div><div class="ssub">${t("s_phase2_s")}</div></div></li>`;
+  h += `</ol></div><div class="card"><h2>${t("req")}</h2><div class="reqs">`;
+  for (const r of S.requirements) h += `<span class="k">${esc(r.name)}</span><span class="v ${r.ok ? "good" : "bad"}">${esc(r.hint || "OK")}</span>`;
+  h += `</div><h2 style="margin-top:20px">${t("kit")}</h2><div class="reqs">`;
+  for (const k of S.kit) h += `<span class="k">${esc(k.name)}</span><span class="v ${k.ok ? "good" : "bad"}">SHA-256</span>`;
+  h += `</div></div></div></div>`;
+  $("install").innerHTML = h;
+  $("install").querySelectorAll("[data-run]").forEach((b) => (b.onclick = () => startTask(b.dataset.run)));
 }
 
-$("homelist").addEventListener("click", (e) => {
-  const it = e.target.closest("[data-act]");
-  if (!it || !it.dataset.act) return;
-  const a = it.dataset.act;
-  if (a === "settings") { renderSettings(); show("settings"); return; }
-  startTask(a);
-});
+// ---------------------------------------------------------------- tools page
+function renderTools() {
+  let h = `<div class="wrap"><h1>${t("tools_t")}</h1><p class="lead">${t("tools_l")}</p>`;
+  for (const [group, items] of TOOLS) {
+    h += `<div class="group">${t(group)}</div><div class="grid">`;
+    for (const [key, icon] of items) {
+      const stepKey = key === "verify" ? "lk1st" : key;
+      const done = S.running === key ? `<div class="done" style="color:var(--accent)">…</div>`
+        : S.done[stepKey] ? `<div class="done">${t("done_on")} ${fmtDate(S.done[stepKey])}</div>` : "";
+      h += `<div class="row ${S.running ? "busy" : ""}" data-run="${key}"><span class="ico">${svg(icon)}</span>
+        <div class="txt"><div class="title">${t(key)}</div><div class="sub">${t(key + "_s")}</div>${done}</div></div>`;
+    }
+    h += `</div>`;
+  }
+  $("tools").innerHTML = h + `</div>`;
+  $("tools").querySelectorAll("[data-run]").forEach((b) => (b.onclick = () => { if (!S.running) startTask(b.dataset.run); }));
+}
+
+// ---------------------------------------------------------------- settings page
+function renderSettings() {
+  const cur = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+  let h = `<div class="wrap"><h1>${t("settings")}</h1><p class="lead"></p>`;
+  h += `<div class="setsec"><h2>${t("lang")}</h2>`;
+  for (const [k, n] of [["en", "English"], ["it", "Italiano"]])
+    h += `<div class="radio ${S.lang === k ? "on" : ""}" data-lang="${k}"><span class="dotr"></span><div>${n}</div></div>`;
+  h += `</div><div class="setsec"><h2>${t("accent")}</h2><div class="swatches">` +
+    ACCENTS.map((c) => `<div class="swatch ${c === cur ? "on" : ""}" data-accent="${c}" style="background:${c}"></div>`).join("") + `</div></div>`;
+  h += `<div class="setsec"><h2>${t("work")}</h2><div class="path">${esc(S.work)}</div><div class="fsub" style="margin-top:6px">${t("work_s")}</div></div>`;
+  h += `<div class="setsec"><h2>${t("about")}</h2><div class="about"><b>bandit-installer ${esc(S.version)}</b> · ${esc(S.platform)}<br>
+    BootShim: imbushuo (boot-shim) · lk2nd/lk1st: msm8916-mainline, port KorelisLabs · WPinternals: René Lergner ·
+    Android4Lumia950: djokcho, EpicLPer, j0sh1x, sonic011gamer · Markynose · LineageOS</div></div>`;
+  h += `<div class="setsec"><button class="btn" data-quit>${t("quit")}</button><div class="fsub" style="margin-top:6px">${t("quit_s")}</div></div></div>`;
+  $("settings").innerHTML = h;
+  $("settings").querySelectorAll("[data-lang]").forEach((el) => (el.onclick = () => setLang(el.dataset.lang)));
+  $("settings").querySelectorAll("[data-accent]").forEach((el) => (el.onclick = () => {
+    setAccent(el.dataset.accent);
+    api("/api/accent", { accent: el.dataset.accent });
+    render(true);
+  }));
+  $("settings").querySelector("[data-quit]").onclick = () => api("/api/quit", {}).then((r) => {
+    if (r.ok) document.body.innerHTML = `<div style="padding:48px;font-size:20px;font-weight:300">${t("bye")}</div>`;
+  });
+}
+
+function setLang(lang) {
+  return api("/api/lang", { lang }).then(refreshState).then(() => render(true));
+}
 
 function refreshState() {
   return api("/api/state").then((s) => {
     S = s; document.documentElement.lang = s.lang;
-    document.querySelectorAll("[data-t]").forEach((el) => (el.textContent = t(el.dataset.t)));
-    if (current === "home") renderHome();
-    if (s.running && current !== "task") openTask(s.running, true);
+    setAccent(s.accent);
+    paintTexts();
+    if (current !== "task") render();
+    else renderNav();
+    if (s.running && taskName !== s.running) openTask(s.running, true);
     return s;
   }).catch(() => {});
 }
-setInterval(() => { if (current !== "task") refreshState(); }, 2000);
+setInterval(refreshState, 2000);
 
 // ---------------------------------------------------------------- tasks
 function startTask(name) {
@@ -368,7 +555,7 @@ function openTask(name, rebuild) {
   $("log").innerHTML = ""; $("statusline").textContent = "";
   $("prog").classList.remove("on"); $("dots").classList.add("on");
   $("bStop").classList.remove("hidden"); $("bBack").classList.add("hidden");
-  show("task");
+  go("task");
   if (rebuild) lastEvent = 0; else lastEvent = Math.max(lastEvent, S.last_event || 0);
   if (!polling) pollEvents();
 }
@@ -401,11 +588,12 @@ function handle(ev) {
     case "prompt": openPrompt(ev); break;
     case "prompt-closed": if (prompt && prompt.pid === ev.pid) closePrompt(); break;
     case "task":
-      if (ev.state === "running") { if (current !== "task") openTask(ev.name, false); break; }
+      if (ev.state === "running") { if (taskName !== ev.name) openTask(ev.name, false); break; }
       $("dots").classList.remove("on"); $("statusline").textContent = "";
       $("bStop").classList.add("hidden"); $("bBack").classList.remove("hidden");
       addLine("step", { done: t("finished"), error: t("failed"), cancelled: t("cancelled") }[ev.state] || ev.state);
       closePrompt();
+      refreshState();
       break;
   }
 }
@@ -419,13 +607,14 @@ function pollEvents() {
 }
 
 $("bStop").onclick = () => api("/api/cancel", {});
-$("bDetail").onclick = () => { $("log").classList.toggle("showdetail"); scrollLog(); };
-$("bBack").onclick = () => { refreshState().then(() => { renderHome(); show("home"); }); };
+$("bDetail").onclick = () => { $("log").classList.toggle("showdetail"); $("bDetail").classList.toggle("on"); scrollLog(); };
+$("bBack").onclick = () => refreshState().then(() => go(["full", "clean", "update", "wizard"].includes(taskName) ? "install" : "tools"));
 
 // ---------------------------------------------------------------- dialogs
 function openPrompt(p) {
   prompt = p;
   const d = $("dialog");
+  d.className = "dialog" + (p.kind === "form" || p.kind === "choose" ? " wide" : "");
   let h = `<h2>${esc(p.title)}</h2>` + (p.body ? `<p>${esc(p.body)}</p>` : "");
   if (p.kind === "confirm") {
     if (p.word) h += `<div class="field"><label>${esc(t("type_word").replace("{w}", p.word))}</label><input type="text" id="pword" autocomplete="off" spellcheck="false"></div>`;
@@ -433,9 +622,9 @@ function openPrompt(p) {
       ${p.no !== null ? `<button class="btn" id="pno">${esc(p.no || t("cancel"))}</button>` : ""}</div>`;
   } else if (p.kind === "choose") {
     for (const o of p.options) {
-      h += `<div class="item ${o.disabled ? "disabled" : ""}" data-key="${o.disabled ? "" : o.key}"><div class="txt">
+      h += `<div class="opt ${o.disabled ? "disabled" : ""}" data-key="${o.disabled ? "" : o.key}"><div>
         <div class="title">${esc(o.title)}${o.badge ? `<span class="badge">${esc(o.badge)}</span>` : ""}</div>
-        <div class="sub" style="white-space:normal">${esc(o.sub || "")}</div></div></div>`;
+        <div class="sub">${esc(o.sub || "")}</div></div></div>`;
     }
     h += `<div class="btns"><button class="btn" id="pno">${t("cancel")}</button></div>`;
   } else if (p.kind === "form") {
@@ -462,14 +651,14 @@ function openPrompt(p) {
   const yes = $("pyes"), no = $("pno");
   if (yes) yes.onclick = () => answer(p.kind === "form" ? collectForm(p) : true);
   if (no) no.onclick = () => answer(p.kind === "confirm" ? false : null);
-  d.querySelectorAll("[data-key]").forEach((el) => el.onclick = () => { if (el.dataset.key !== "") answer(Number(el.dataset.key)); });
-  d.querySelectorAll("[data-toggle]").forEach((el) => el.onclick = () => {
+  d.querySelectorAll("[data-key]").forEach((el) => (el.onclick = () => { if (el.dataset.key !== "") answer(Number(el.dataset.key)); }));
+  d.querySelectorAll("[data-toggle]").forEach((el) => (el.onclick = () => {
     if (el.classList.contains("disabled")) return;
     el.classList.toggle("on"); el.querySelector(".tv").textContent = el.classList.contains("on") ? t("on") : t("off");
-  });
-  d.querySelectorAll("[data-radio]").forEach((el) => el.onclick = () => {
+  }));
+  d.querySelectorAll("[data-radio]").forEach((el) => (el.onclick = () => {
     el.parentElement.querySelectorAll("[data-radio]").forEach((x) => x.classList.remove("on")); el.classList.add("on");
-  });
+  }));
 }
 
 function collectForm(p) {
@@ -486,39 +675,16 @@ function collectForm(p) {
 
 function answer(value) { if (!prompt) return; api("/api/answer", { pid: prompt.pid, value }); closePrompt(); }
 function closePrompt() { prompt = null; $("veil").classList.add("hidden"); $("dialog").innerHTML = ""; }
+document.addEventListener("keydown", (e) => {
+  if (!prompt) return;
+  if (e.key === "Escape" && $("pno")) $("pno").click();
+  if (e.key === "Enter" && $("pyes") && !$("pyes").disabled) $("pyes").click();
+});
 
-// ---------------------------------------------------------------- settings
-function renderSettings() {
-  const cur = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
-  let h = `<div class="group">${t("lang")}</div>`;
-  for (const [k, n] of [["it", "Italiano"], ["en", "English"]])
-    h += `<div class="radio ${S.lang === k ? "on" : ""}" data-lang="${k}" style="padding:7px 18px"><span class="dotr"></span><div>${n}</div></div>`;
-  h += `<div class="group">${t("accent")}</div><div class="swatches">` +
-    ACCENTS.map((c) => `<div class="swatch ${c === cur ? "on" : ""}" data-accent="${c}" style="background:${c}"></div>`).join("") + `</div>`;
-  h += `<div class="group">${t("req")}</div>`;
-  for (const r of S.requirements) h += `<div class="req"><span class="k">${esc(r.name)}</span><span class="${r.ok ? "" : "bad"}">${r.ok ? "✓ " : "! "}${esc(r.hint || "")}</span></div>`;
-  for (const k of S.kit) h += `<div class="req"><span class="k">${esc(k.name)}</span><span class="${k.ok ? "" : "bad"}">${k.ok ? "✓ sha256" : "! sha256"}</span></div>`;
-  h += `<div class="req"><span class="k">${t("work")}</span><span>${esc(S.work)}</span></div>`;
-  h += `<div class="group">${t("about")}</div><div class="about"><b>bandit-installer ${esc(S.version)}</b> · ${esc(S.platform)}<br>
-    BootShim: imbushuo (boot-shim) · lk2nd/lk1st: msm8916-mainline, port KorelisLabs · WPinternals: René Lergner ·
-    Android4Lumia950: djokcho, EpicLPer, j0sh1x, sonic011gamer · Markynose · LineageOS</div>`;
-  h += `<div class="item" data-quit style="margin-top:14px"><div class="ico">${svg("exit")}</div><div class="txt"><div class="title">${t("quit")}</div><div class="sub">${t("quit_s")}</div></div></div>`;
-  $("setlist").innerHTML = h;
-  $("setlist").querySelectorAll("[data-lang]").forEach((el) => el.onclick = () =>
-    api("/api/lang", { lang: el.dataset.lang }).then(refreshState).then(renderSettings));
-  $("setlist").querySelectorAll("[data-accent]").forEach((el) => el.onclick = () => {
-    document.documentElement.style.setProperty("--accent", el.dataset.accent);
-    try { localStorage.setItem("accent", el.dataset.accent); } catch (e) {}
-    renderSettings();
-  });
-  $("setlist").querySelector("[data-quit]").onclick = () => api("/api/quit", {}).then((r) => {
-    if (r.ok) document.body.innerHTML = `<div style="padding:40px 20px;font-size:20px;font-weight:300">${t("bye")}</div>`;
-  });
-}
-$("bSetBack").onclick = () => { renderHome(); show("home"); };
-
-document.querySelectorAll("[data-icon]").forEach((el) => (el.innerHTML = svg(el.dataset.icon)));
-refreshState().then((s) => { if (s && s.prompt && s.running) { openTask(s.running, true); } });
+// ---------------------------------------------------------------- start
+paintIcons();
+go("install");
+refreshState().then((s) => { if (s && s.running) openTask(s.running, true); });
 </script>
 </body>
 </html>
