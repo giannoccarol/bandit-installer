@@ -13,6 +13,10 @@ UEFI Nokia → bootmgr → BCD entry "Android (lk1st)" → BootShim → lk1st (f
 and then works through that chain: it boots test kernels in RAM, writes Android partitions with
 fastboot and collects the logs. **Experimental**: the work on the Android port is in progress.
 
+**Download** the package for Windows or Linux from the
+[releases page](https://github.com/giannoccarol/bandit-installer/releases) and follow the
+**[user guide](docs/GUIDE.md)** ([guida in italiano](docs/GUIDA.md)).
+
 ![Install page](docs/screenshots/01-install.png)
 
 | | |
@@ -72,8 +76,9 @@ The single steps are also available on their own, for development and recovery:
 - The phone **unlocked with [WPinternals](https://github.com/ReneLergner/WPinternals)** (needs a
   Windows PC). WPinternals also switches it to mass storage mode. After unlocking you may move the
   cable to a Linux PC: the phone stays in mass storage mode until it restarts.
-- **Python 3.8 or newer**, standard library only.
-  Windows: [python.org](https://www.python.org/downloads/windows/) or `winget install Python.Python.3.12`.
+- **Python 3.8 or newer**, standard library only. The Windows release package includes its own
+  Python; from a source checkout on Windows use [python.org](https://www.python.org/downloads/windows/)
+  or `winget install Python.Python.3.14`.
 - **Android Platform Tools** (`fastboot`, `adb`): the installer can download Google's copy into `tools/`.
 - Windows: the [Google USB driver](https://developer.android.com/studio/run/win-usb) for fastboot.
   The BCD is changed with Windows' own `bcdedit`.
@@ -161,13 +166,17 @@ payload/       BootShim, lk1st, K1 and their pinned hashes
   its model.
 - **LineageOS** and the `oppo_msm8974` kernel the bandit kernel is based on.
 - Google for the Android Platform Tools and USB driver.
+- The **Python Software Foundation**: the Windows package includes the official
+  [embeddable Python](https://www.python.org/downloads/windows/) (PSF License), unmodified.
 
 ---
 
 ## In italiano
 
-Installer per Android sul Lumia 1520, per Windows e Linux, con interfaccia in stile Windows 10
-Mobile (si apre come finestra app; `--text` per il terminale). Prepara la catena di avvio
+Installer per Android sul Lumia 1520, per Windows e Linux, con una finestra desktop in stile
+Windows 10 (interfaccia in inglese, italiano dalle impostazioni o con `--lang it`; `--text` per il
+terminale). Pacchetti nella [pagina delle release](https://github.com/giannoccarol/bandit-installer/releases),
+istruzioni complete nella **[guida in italiano](docs/GUIDA.md)**. Prepara la catena di avvio
 BootShim → lk1st da EFIESP con backup e verifiche, poi avvia kernel di prova in RAM, scrive le
 partizioni Android con fastboot e raccoglie i log. Serve il telefono sbloccato con WPinternals.
 Avvio: `./installer.sh` su Linux, `installer.bat` su Windows. Il volume su all'accensione resta
