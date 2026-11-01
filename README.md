@@ -1,8 +1,8 @@
 # Lumia 1520 Android installer (bandit)
 
 An installer for running Android on the Nokia Lumia 1520 (RM-937/RM-938/RM-940, codename
-**bandit**), for **Windows and Linux**, with a desktop app window in the style of Windows 10. The interface is in English, with Italian
-available in the settings or with `--lang it`.
+**bandit**), for **Windows and Linux**, with a desktop app window in the style of Windows 10.
+The interface is in English, with Italian available in the settings or with `--lang it`.
 
 It sets up the boot chain that starts Android from the phone's own Windows Phone boot manager:
 
@@ -13,13 +13,14 @@ UEFI Nokia → bootmgr → BCD entry "Android (lk1st)" → BootShim → lk1st (f
 and then works through that chain: it boots test kernels in RAM, writes Android partitions with
 fastboot and collects the logs. **Experimental**: the work on the Android port is in progress.
 
-<p>
-<img src="docs/screenshots/01-home.jpg" width="260" alt="Home">
-<img src="docs/screenshots/02-diagnostics.jpg" width="260" alt="Diagnostics">
-<img src="docs/screenshots/03-boot-in-ram.jpg" width="260" alt="Boot in RAM">
-</p>
+![Install page](docs/screenshots/01-install.png)
 
-<sub>Screenshots taken with the Italian interface on a real RM-937 in lk1st fastboot.</sub>
+| | |
+|---|---|
+| ![Advanced tools](docs/screenshots/02-advanced-tools.png) | ![Diagnostics](docs/screenshots/03-diagnostics.png) |
+| ![Boot in RAM](docs/screenshots/04-boot-in-ram.png) | |
+
+<sub>Screenshots taken on Linux with the phone disconnected.</sub>
 
 ## Modes
 
