@@ -11,7 +11,7 @@ import shutil
 import subprocess
 import time
 
-from . import bcd, gpt, images, sysdeps
+from . import android, bcd, gpt, images, phase2, sysdeps
 from .core import Abort, Cancelled, human_size, stamp
 from .i18n import L
 from .phone import mode_text
@@ -23,8 +23,11 @@ FLASHABLE = ("boot", "recovery", "system", "vendor", "cache", "userdata", "misc"
 
 
 class Ctx:
-    def __init__(self, root, work, system, phone, poller, state, kit, ui):
+    def __init__(self, root, work, system, phone, poller, state, kit, ui, opts=None):
         self.root = root
+        self.opts = dict(opts or {})   # rom, rom_sha256, twrp, phase2_recovery
+        self.rom = None
+        self.twrp = None
         self.work = work
         self.system = system
         self.phone = phone
@@ -177,6 +180,13 @@ def requirements(ctx):
         out.append((name, False, hint))
     if ctx.system.bcd_backend():
         out.append(("BCD", True, ctx.system.bcd_backend()))
+    twrp = ctx.opts.get("twrp") or os.path.join(ctx.root, "twrp", android.TWRP_NAME)
+    out.append(("TWRP", os.path.isfile(twrp), twrp if os.path.isfile(twrp) else L(
+        f"{android.TWRP_NAME}: l'installer la scarica quando serve", f"{android.TWRP_NAME}: the installer downloads it when needed")))
+    import glob as _glob
+    roms = [ctx.opts["rom"]] if ctx.opts.get("rom") else sorted(_glob.glob(os.path.join(ctx.root, "rom", android.ROM_GLOB)))
+    out.append(("ROM", bool(roms), ", ".join(os.path.basename(r) for r in roms) if roms else L(
+        "metti lo zip e SHA256SUMS nella cartella rom", "put the zip and SHA256SUMS in the rom folder")))
     out.append((L("amministratore", "administrator"), ctx.system.is_admin(),
                 "" if ctx.system.is_admin() else L("serve per leggere e scrivere il telefono", "needed to read and write the phone")))
     return out
@@ -464,25 +474,29 @@ def _efiesp_layout(root):
     return lay
 
 
-def chain_options(ctx, view):
+def chain_options(ctx, view, for_full=False):
+    """Boot options. In the Full mode Windows is erased afterwards: Android only, no menu."""
     ui = ctx.ui
     variants = [{"value": e["id"], "title": ctx.kit.title(e),
                  "sub": ctx.kit.note(e) + ("" if ctx.kit.check(e) else L(" — FILE MANCANTE O DIVERSO", " — FILE MISSING OR CHANGED"))}
                 for e in ctx.kit.meta["lk1st"]]
-    has_win = view.windows() is not None
+    has_win = view.windows() is not None and not for_full
+    note = L("Il tasto volume su all'accensione apre sempre la modalità flash: è la via di recupero e non viene mai cambiato.",
+             "Holding volume up at power-on always opens flash mode: it is the way back and is never changed.")
+    if for_full:
+        note += "\n" + L("Installazione completa: Windows verrà cancellato, quindi Android parte all'accensione ed è l'unico sistema.",
+                         "Full install: Windows will be erased, so Android starts at power-on and is the only system.")
     r = ui.form(
-        L("Opzioni di avvio", "Boot options"),
-        L("Il tasto volume su all'accensione apre sempre la modalità flash: è la via di recupero e non viene mai cambiato.",
-          "Holding volume up at power-on always opens flash mode: it is the way back and is never changed."),
+        L("Opzioni di avvio", "Boot options"), note,
         [
             {"key": "variant", "type": "select", "label": "lk1st", "value": variants[0]["value"], "options": variants},
-            {"key": "android_default", "type": "toggle", "value": True,
+            {"key": "android_default", "type": "toggle", "value": True, "disabled": for_full,
              "label": L("Avvia Android all'accensione", "Start Android at power-on"),
              "sub": L("altrimenti parte Windows e Android resta nel menu", "otherwise Windows starts and Android stays in the menu")},
             {"key": "voldown", "type": "toggle", "value": has_win, "disabled": not has_win,
              "label": L("Volume giù → l'altro sistema", "Volume down → the other system"),
              "sub": L("al posto di «Reset My Phone»", "instead of \"Reset My Phone\"")},
-            {"key": "android_only", "type": "toggle", "value": not has_win,
+            {"key": "android_only", "type": "toggle", "value": not has_win, "disabled": for_full,
              "label": L("Solo Android", "Android only"),
              "sub": L("quando Windows è già stato rimosso", "when Windows has already been removed")},
             {"key": "timeout", "type": "number", "value": 0, "label": L("Attesa del menu (s)", "Menu timeout (s)"),
@@ -498,7 +512,7 @@ def chain_options(ctx, view):
     return r["variant"], opts
 
 
-def act_chain(ctx):
+def act_chain(ctx, for_full=False):
     ui = ctx.ui
     ui.step(L("Catena di avvio: BootShim + lk1st", "Boot chain: BootShim + lk1st"))
     backend = ctx.system.bcd_backend()
@@ -515,7 +529,7 @@ def act_chain(ctx):
         lay = _efiesp_layout(root)
         before = bcd.BcdView(lay["bcd"])
         ui.show(L("BCD attuale", "Current BCD"), before.summary())
-        variant, opts = chain_options(ctx, before)
+        variant, opts = chain_options(ctx, before, for_full)
         lk = ctx.kit.lk1st(variant)
         if not ctx.kit.check(lk):
             raise Abort(L(f"lk1st {variant}: file mancante o diverso", f"lk1st {variant}: file missing or changed"))
@@ -566,8 +580,8 @@ def act_chain(ctx):
             L(f"voce {guid}, device copiato da {plan.template_kind}", f"entry {guid}, device copied from {plan.template_kind}")])
         ctx.give_back(bk)
         if not ui.confirm(L("Scrivere su EFIESP?", "Write to EFIESP?"),
-                          L("Verranno scritti BootShim, lk1st e il nuovo BCD. Windows resta intatto; il backup è pronto per il ripristino.",
-                            "BootShim, lk1st and the new BCD will be written. Windows stays intact; the backup is ready for a restore."),
+                          L("Verranno scritti BootShim, lk1st e il nuovo BCD. Windows per ora resta intatto; il backup è pronto per il ripristino.",
+                            "BootShim, lk1st and the new BCD will be written. Windows stays intact for now; the backup is ready for a restore."),
                           L("installa", "install"), L("annulla", "cancel"),
                           word=L("INSTALLA", "INSTALL"), danger=True):
             raise Cancelled()
@@ -901,9 +915,9 @@ def act_flash(ctx):
     if not parts:
         ui.show(L("Partizioni Android", "Android partitions"),
                 L(["Il telefono non ha ancora partizioni Android (boot, system, …).",
-                   "Si creano con la fase 2, non ancora disponibile. Intanto usa «Avvio in RAM»."],
+                   "Le crea l'installazione completa (fase 2). Intanto puoi usare «Avvio in RAM»."],
                   ["The phone has no Android partitions yet (boot, system, …).",
-                   "They are created by phase 2, not available yet. Meanwhile use \"Boot in RAM\"."]))
+                   "The Full install creates them (phase 2). Meanwhile you can use \"Boot in RAM\"."]))
         return
     name = ui.choose(L("Quale partizione?", "Which partition?"), "",
                      [{"value": n, "title": n, "sub": human_size(s)} for n, s in parts])
@@ -1108,37 +1122,37 @@ def act_diag(ctx):
 # install modes (as in the Lumia 950 XL installer: Full, Clean, Update)
 # ---------------------------------------------------------------------------
 
-# Clean and Update need the Android partitions (phase 2) and a ROM that boots.
-PHASE2_READY = False
+# Phase 2 (Android partitions) and the ROM install are available.
+PHASE2_READY = True
 
 MODES = {
     "full": {
         "title": ("Completa", "Full"),
         "before": ("Windows 10 Mobile, sbloccato con WPinternals, in mass storage",
                    "Windows 10 Mobile, unlocked with WPinternals, in mass storage mode"),
-        "does": ("backup, firmware da Windows, BootShim + lk1st su EFIESP, verifica di lk1st in fastboot",
-                 "backup, firmware from Windows, BootShim + lk1st on EFIESP, lk1st check in fastboot"),
-        "data": ("Windows resta intatto (per ora)", "Windows stays intact (for now)"),
-        "ready": True,
+        "does": ("backup, firmware da Windows, BootShim + lk1st su EFIESP, verifica di lk1st, partizioni Android "
+                 "(Windows cancellato), TWRP in RAM, formattazione dei dati, ROM",
+                 "backup, firmware from Windows, BootShim + lk1st on EFIESP, lk1st check, Android partitions "
+                 "(Windows erased), TWRP in RAM, format data, ROM"),
+        "data": ("Windows e tutti i suoi dati cancellati (prima un backup sul PC)",
+                 "Windows and all its data erased (after a backup on the PC)"),
+        "ready": PHASE2_READY,
     },
     "clean": {
         "title": ("Pulita", "Clean"),
         "before": ("lk1st e partizioni Android già presenti", "lk1st and Android partitions already in place"),
-        "does": ("TWRP, formattazione dei dati, ROM", "TWRP, format data, ROM"),
-        "data": ("tutti i dati Android cancellati", "all Android data erased"),
+        "does": ("TWRP in RAM, formattazione dei dati, ROM", "TWRP in RAM, format data, ROM"),
+        "data": ("tutti i dati Android cancellati, memoria interna compresa", "all Android data erased, internal storage included"),
         "ready": PHASE2_READY,
     },
     "update": {
         "title": ("Aggiornamento", "Update"),
         "before": ("questa ROM già installata", "this ROM already installed"),
-        "does": ("TWRP, ROM", "TWRP, ROM"),
+        "does": ("TWRP in RAM, ROM", "TWRP in RAM, ROM"),
         "data": ("conservati", "kept"),
         "ready": PHASE2_READY,
     },
 }
-
-NOT_READY = ("Non ancora disponibile: servono le partizioni Android (fase 2, layout non ancora definitivo) e una ROM che si avvia.",
-             "Not available yet: it needs the Android partitions (phase 2, layout not final yet) and a ROM that boots.")
 
 
 def mode_options():
@@ -1146,67 +1160,151 @@ def mode_options():
     out = []
     for key, m in MODES.items():
         sub = L(f"prima: {m['before'][0]}. Dati: {m['data'][0]}.", f"before: {m['before'][1]}. Data: {m['data'][1]}.")
-        if not m["ready"]:
-            sub += " " + L(*NOT_READY)
         out.append({"value": key, "title": L(*m["title"]), "sub": sub, "disabled": not m["ready"]})
     return out
 
 
-def act_full(ctx):
-    ui = ctx.ui
-    m = MODES["full"]
-    ui.step(L("Installazione completa", "Full install"))
-    ui.show(L("Cosa fa", "What it does"), [
+def _intro(ctx, key, extra=()):
+    m = MODES[key]
+    ctx.ui.show(L("Cosa fa", "What it does"), [
         L("Telefono: ", "Phone: ") + L(*m["before"]),
         L("Passi: ", "Steps: ") + L(*m["does"]),
         L("Dati: ", "Data: ") + L(*m["data"]),
-        L("Le partizioni Android e la ROM (fase 2) arriveranno quando il layout sarà definitivo.",
-          "Android partitions and the ROM (phase 2) will follow once the layout is final."),
-    ])
-    if not ctx.phone.fastboot_exe:
+    ] + list(extra))
+
+
+def _need_tools(ctx):
+    if not (ctx.phone.fastboot_exe and ctx.phone.adb_exe):
         act_tools(ctx)
-    snap = ctx.phone.snapshot()
+    if not (ctx.phone.fastboot_exe and ctx.phone.adb_exe):
+        raise Abort(L("Servono adb e fastboot.", "adb and fastboot are needed."))
+
+
+def _resolve_files(ctx):
+    """TWRP and ROM are checked before anything touches the phone."""
+    android.resolve_twrp(ctx)
+    android.resolve_rom(ctx)
+
+
+def phase2_recovery(ctx):
+    """(image, label) of the recovery used for phase 2: the pinned TWRP unless --phase2-recovery."""
+    path = ctx.opts.get("phase2_recovery")
+    if not path:
+        return ctx.twrp, "TWRP"
+    path = os.path.abspath(os.path.expanduser(path))
+    if not os.path.isfile(path):
+        raise Abort(L(f"Recovery per la fase 2 non trovata: {path}", f"Phase 2 recovery not found: {path}"))
+    try:
+        images.BootImage(path)
+    except ValueError as e:
+        raise Abort(f"{path}: {e}")
+    ctx.ui.warn(L(f"Fase 2 con una recovery non verificata dall'installer: {path} (sha256 {images.sha256_file(path)})",
+                  f"Phase 2 with a recovery the installer does not pin: {path} (sha256 {images.sha256_file(path)})"))
+    return path, "recovery"
+
+
+def act_phase2(ctx):
+    """Phase 2 alone (advanced tools): Android partitions, Windows erased. No ROM."""
+    ui = ctx.ui
+    ui.step(L("Partizioni Android (fase 2)", "Android partitions (phase 2)"))
+    _need_tools(ctx)
+    if not ctx.twrp:
+        android.resolve_twrp(ctx)
+    image, label = phase2_recovery(ctx)
+    phase2.run_phase2(ctx, android.boot_recovery, image, label)
+
+
+def _full_mass_storage_part(ctx):
+    """Backup, firmware and boot chain in mass storage, then the lk1st check."""
+    ui = ctx.ui
     st = ctx.state
-    if snap.mode == "fastboot" and (st.done("chain") or snap.detail.startswith(("lk1st", "lk2nd"))):
-        ui.ok(L("lk1st già in fastboot: la catena di avvio è installata.", "lk1st already in fastboot: the boot chain is installed."))
-        if not st.done("lk1st"):
+    plan = [("backup", L("Backup", "Backup"), act_backup),
+            ("firmware", L("Firmware da Windows", "Firmware from Windows"), act_firmware),
+            ("chain", L("Catena di avvio", "Boot chain"), lambda c: act_chain(c, for_full=True))]
+    for key, title, fn in plan:
+        if ctx.disk is None:
+            select_disk(ctx)
+        done = st.done(key)
+        if done:
+            v = ui.choose(title, L(f"Già fatto il {done['time'].replace('T', ' ')}.", f"Already done on {done['time'].replace('T', ' ')}."),
+                          [{"value": "skip", "title": L("Salta", "Skip"), "sub": L("usa quello esistente", "use the existing one")},
+                           {"value": "redo", "title": L("Rifai", "Do it again"), "sub": ""}])
+            if v is None:
+                raise Cancelled()
+            if v == "skip":
+                continue
+        fn(ctx)
+    if not st.done("lk1st"):
+        act_verify_lk1st(ctx)
+
+
+def act_full(ctx):
+    ui = ctx.ui
+    st = ctx.state
+    ui.step(L("Installazione completa", "Full install"))
+    _intro(ctx, "full", [
+        L("Riprende da dove si era fermata: i passi fatti sono salvati in work/state.json.",
+          "It resumes where it stopped: the steps done are saved in work/state.json."),
+        L("Windows viene cancellato solo dopo il backup del provisioning e la parola di conferma.",
+          "Windows is erased only after the provisioning backup and the confirmation words."),
+    ])
+    _need_tools(ctx)
+    _resolve_files(ctx)
+    snap = ctx.phone.snapshot()
+    lk_seen = snap.mode == "fastboot" and snap.detail.startswith(("lk1st", "lk2nd"))
+    chain_ready = st.done("chain") or st.done("lk1st") or st.done("phase2") or lk_seen
+    if snap.mode == "mass" or not chain_ready:
+        _full_mass_storage_part(ctx)
+    elif not (st.done("lk1st") or st.done("phase2")):
+        if snap.mode == "fastboot":
             act_verify_lk1st(ctx)
+        else:
+            ui.info(L("Catena di avvio già installata.", "Boot chain already installed."))
     else:
-        plan = [("backup", L("Backup", "Backup"), act_backup),
-                ("firmware", L("Firmware da Windows", "Firmware from Windows"), act_firmware),
-                ("chain", L("Catena di avvio", "Boot chain"), act_chain)]
-        for key, title, fn in plan:
-            select_disk(ctx) if ctx.disk is None else None
-            done = st.done(key)
-            if done:
-                v = ui.choose(title, L(f"Già fatto il {done['time'].replace('T', ' ')}.", f"Already done on {done['time'].replace('T', ' ')}."),
-                              [{"value": "skip", "title": L("Salta", "Skip"), "sub": L("usa quello esistente", "use the existing one")},
-                               {"value": "redo", "title": L("Rifai", "Do it again"), "sub": ""}])
-                if v is None:
-                    raise Cancelled()
-                if v == "skip":
-                    continue
-            fn(ctx)
-        if not st.done("lk1st"):
-            act_verify_lk1st(ctx)
-    if ctx.kit.boot_images() and ui.confirm(
-            L("Provare il kernel K1?", "Try the K1 kernel?"),
-            L("Avvio in RAM del primo kernel bandit, mai provato finora. Non scrive nulla.",
-              "RAM boot of the first bandit kernel, never tried so far. It writes nothing."),
-            L("avvia K1", "boot K1"), L("non ora", "not now")):
-        act_boot(ctx, ("kit", ctx.kit.boot_images()[0]["id"]))
-    ui.ok(L("Installazione completa terminata fino a lk1st.", "Full install finished up to lk1st."))
+        ui.ok(L("Catena di avvio installata e lk1st verificato.", "Boot chain installed and lk1st checked."))
+    if not st.done("phase2"):
+        image, label = phase2_recovery(ctx)
+        phase2.run_phase2(ctx, android.boot_recovery, image, label)
+    else:
+        ui.ok(L(f"Fase 2 già fatta il {st.done('phase2')['time'].replace('T', ' ')}.",
+                f"Phase 2 already done on {st.done('phase2')['time'].replace('T', ' ')}."))
+        if st.done("rom"):
+            v = ui.choose(L("Installazione già completata", "Install already finished"),
+                          L(f"ROM installata il {st.done('rom')['time'].replace('T', ' ')}.",
+                            f"ROM installed on {st.done('rom')['time'].replace('T', ' ')}."),
+                          [{"value": "again", "title": L("Reinstalla la ROM (pulita)", "Install the ROM again (clean)"),
+                            "sub": L("formatta i dati", "formats data")}])
+            if v is None:
+                raise Cancelled()
+    # TWRP is (re)started so that it sees the new partitions (data, cache)
+    ui.step(L("ROM", "ROM"))
+    android.install_rom(ctx, wipe_data=True)
+    ui.ok(L("Installazione completa terminata.", "Full install finished."))
 
 
-def _not_ready(key):
-    def run(ctx):
-        ctx.ui.step(L(f"Installazione {MODES[key]['title'][0].lower()}", f"{MODES[key]['title'][1]} install"))
-        raise Abort(L(*NOT_READY))
-    return run
+def _confirm_clean(ctx):
+    if not ctx.ui.confirm(L("Installazione pulita: TUTTI i dati del telefono vengono cancellati, memoria interna compresa.",
+                            "Clean install: ALL data on the phone is erased, internal storage included."),
+                          L("Foto, app e file su Android spariscono. Niente è stato ancora scritto: il telefono è nella TWRP.",
+                            "Photos, apps and files in Android disappear. Nothing has been written yet: the phone is in TWRP."),
+                          L("cancella", "erase"), L("annulla", "cancel"), word=L("CANCELLA", "ERASE"), danger=True):
+        raise Cancelled()
 
 
-act_clean = _not_ready("clean")
-act_update = _not_ready("update")
+def act_clean(ctx):
+    ctx.ui.step(L("Installazione pulita", "Clean install"))
+    _intro(ctx, "clean")
+    _need_tools(ctx)
+    _resolve_files(ctx)
+    android.install_rom(ctx, wipe_data=True, before_write=_confirm_clean)
+
+
+def act_update(ctx):
+    ctx.ui.step(L("Aggiornamento", "Update"))
+    _intro(ctx, "update")
+    _need_tools(ctx)
+    _resolve_files(ctx)
+    android.install_rom(ctx, wipe_data=False, before_write=android.check_update_target)
 
 
 ACTIONS = {
@@ -1218,6 +1316,7 @@ ACTIONS = {
     "firmware": act_firmware,
     "chain": act_chain,
     "verify": act_verify_lk1st,
+    "phase2": act_phase2,
     "boot": act_boot,
     "ramoops": act_ramoops,
     "flash": act_flash,

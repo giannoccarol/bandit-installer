@@ -3,7 +3,10 @@
 The mode comes from the USB ids (cheap, works without drivers) and, for
 fastboot and adb, from the tools themselves.
 """
+import os
+import queue
 import re
+import subprocess
 import threading
 import time
 
@@ -56,21 +59,30 @@ class Snapshot:
 
 
 class Phone:
-    def __init__(self, system, log):
+    """fastboot and adb. With a serial (--serial or ANDROID_SERIAL) only that device is used."""
+
+    def __init__(self, system, log, adb=None, fastboot=None, serial=None, scan_usb=True):
         self.system = system
         self.log = log
-        self.fastboot_exe = system.find_tool("fastboot")
-        self.adb_exe = system.find_tool("adb")
+        self.adb_override = adb
+        self.fastboot_override = fastboot
+        self.serial = serial or os.environ.get("ANDROID_SERIAL") or None
+        self.scan_usb = scan_usb and not os.environ.get("BANDIT_NO_USB_SCAN")
+        self.refresh_tools()
 
     def refresh_tools(self):
-        self.fastboot_exe = self.system.find_tool("fastboot")
-        self.adb_exe = self.system.find_tool("adb")
+        self.fastboot_exe = self.fastboot_override or self.system.find_tool("fastboot")
+        self.adb_exe = self.adb_override or self.system.find_tool("adb")
+
+    def _sel(self, args):
+        return (["-s", self.serial] if self.serial and args[:1] != ["devices"] else []) + list(args)
 
     # tools -----------------------------------------------------------------
     def fastboot(self, args, timeout=60, quiet=False):
         if not self.fastboot_exe:
             return 127, "fastboot not found"
-        rc, out = sysdeps.run([self.fastboot_exe] + args, timeout=timeout)
+        # empty stdin: never a terminal, so nothing on the phone side waits for a key
+        rc, out = sysdeps.run([self.fastboot_exe] + self._sel(args), timeout=timeout, input=b"")
         if not quiet:
             self.log(f"$ fastboot {' '.join(args)}  (rc={rc})\n{out.rstrip()}")
         return rc, out
@@ -78,23 +90,104 @@ class Phone:
     def adb(self, args, timeout=60, quiet=False):
         if not self.adb_exe:
             return 127, "adb not found"
-        rc, out = sysdeps.run([self.adb_exe] + args, timeout=timeout)
+        rc, out = sysdeps.run([self.adb_exe] + self._sel(args), timeout=timeout, input=b"")
         if not quiet:
             self.log(f"$ adb {' '.join(args)}  (rc={rc})\n{out.rstrip()}")
         return rc, out
 
+    def adb_bytes(self, args, timeout=120):
+        """Runs adb and returns (rc, stdout bytes): for exec-out reads of partitions."""
+        if not self.adb_exe:
+            return 127, b""
+        try:
+            p = subprocess.run([self.adb_exe] + self._sel(args), stdin=subprocess.DEVNULL,
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            return 124, b""
+        if p.returncode:
+            self.log(f"$ adb {' '.join(args)}  (rc={p.returncode})\n{p.stderr.decode('utf-8', 'replace').rstrip()}")
+        return p.returncode, p.stdout
+
+    def adb_background(self, args):
+        """Starts adb without waiting (twrp sideload blocks until adbd restarts)."""
+        self.log(f"$ adb {' '.join(args)}  (background)")
+        return subprocess.Popen([self.adb_exe] + self._sel(args), stdin=subprocess.DEVNULL,
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def adb_stream(self, args, on_text, timeout):
+        """Runs adb, calling on_text(piece) for every line or \\r-separated piece of its output.
+
+        Returns (rc, whole output). rc 124 on timeout (the process is killed).
+        """
+        if not self.adb_exe:
+            return 127, "adb not found"
+        p = subprocess.Popen([self.adb_exe] + self._sel(args), stdin=subprocess.DEVNULL,
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        q = queue.Queue()
+
+        def reader():
+            while True:
+                b = p.stdout.read1(4096) if hasattr(p.stdout, "read1") else p.stdout.read(1)
+                if not b:
+                    break
+                q.put(b)
+            q.put(None)
+
+        threading.Thread(target=reader, daemon=True).start()
+        deadline = time.time() + timeout
+        buf, out = "", []
+        while True:
+            try:
+                b = q.get(timeout=0.5)
+            except queue.Empty:
+                if time.time() > deadline:
+                    p.kill()
+                    p.wait()
+                    self.log(f"$ adb {' '.join(args)}  (timeout)\n{''.join(out).rstrip()}")
+                    return 124, "".join(out)
+                continue
+            if b is None:
+                break
+            text = b.decode("utf-8", "replace")
+            out.append(text)
+            buf += text
+            *pieces, buf = re.split(r"[\r\n]", buf)
+            for piece in pieces:
+                if piece.strip():
+                    on_text(piece.strip())
+        if buf.strip():
+            on_text(buf.strip())
+        rc = p.wait()
+        self.log(f"$ adb {' '.join(args)}  (rc={rc})\n{''.join(out).rstrip()}")
+        return rc, "".join(out)
+
+    def start_adb_server(self):
+        """Starts the adb server outside our pipes, so it never holds them open (no-op if running)."""
+        if not self.adb_exe:
+            return
+        try:
+            subprocess.Popen([self.adb_exe, "start-server"], stdin=subprocess.DEVNULL,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).wait(60)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+
     def fastboot_serials(self):
         rc, out = self.fastboot(["devices"], timeout=10, quiet=True)
-        return [l.split()[0] for l in out.splitlines() if l.strip().endswith("fastboot")]
+        serials = [l.split()[0] for l in out.splitlines() if l.strip().endswith("fastboot")]
+        return [s for s in serials if not self.serial or s == self.serial]
+
+    def adb_devices(self):
+        """[(serial, state)] as adb lists them (device, recovery, sideload, unauthorized…)."""
+        rc, out = self.adb(["devices"], timeout=10, quiet=True)
+        found = []
+        for l in out.splitlines()[1:]:
+            parts = l.split(None, 1)
+            if len(parts) == 2 and not l.startswith("*"):
+                found.append((parts[0], parts[1].strip()))
+        return [d for d in found if not self.serial or d[0] == self.serial]
 
     def adb_states(self):
-        rc, out = self.adb(["devices"], timeout=10, quiet=True)
-        states = []
-        for l in out.splitlines()[1:]:
-            parts = l.split()
-            if len(parts) >= 2:
-                states.append(parts[1])
-        return states
+        return [st for _s, st in self.adb_devices()]
 
     def getvar(self, name):
         rc, out = self.fastboot(["getvar", name], timeout=15, quiet=True)
@@ -103,7 +196,7 @@ class Phone:
 
     # mode ------------------------------------------------------------------
     def snapshot(self, use_tools=True):
-        usb = self.system.usb_devices()
+        usb = self.system.usb_devices() if self.scan_usb else []
         modes = []
         problem = ""
         for d in usb:

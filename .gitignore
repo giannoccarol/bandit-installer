@@ -4,3 +4,7 @@ __pycache__/
 *.pyc
 *.log
 dist/
+rom/*
+!rom/README.txt
+twrp/*
+!twrp/README.txt

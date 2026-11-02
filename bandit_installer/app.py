@@ -79,6 +79,10 @@ class TextUI(UI):
         return out
 
 
+def _exe(path):
+    return os.path.abspath(os.path.expanduser(path)) if path else None
+
+
 def parse_args(argv):
     ap = argparse.ArgumentParser(prog="installer", description="Android installer for the Nokia Lumia 1520 (bandit)")
     ap.add_argument("--lang", choices=("en", "it"), help="interface language (default: English, or the one chosen in the settings)")
@@ -88,6 +92,13 @@ def parse_args(argv):
     ap.add_argument("--action", choices=sorted(steps.ACTIONS), help="with --text: run one task and exit")
     ap.add_argument("--no-elevate", action="store_true", help="do not ask for administrator/root rights")
     ap.add_argument("--no-browser", action="store_true", help="only print the address of the app window")
+    ap.add_argument("--rom", help="ROM zip (default: the lineage-18.1-*-bandit.zip in rom/)")
+    ap.add_argument("--rom-sha256", help="expected SHA-256 of the ROM zip (default: SHA256SUMS next to it)")
+    ap.add_argument("--twrp", help="TWRP image (default: twrp/%s); its SHA-256 must be in checksums.sha256" % "twrp-3.7.0_9-1-bandit.img")
+    ap.add_argument("--phase2-recovery", help="recovery image for phase 2 instead of the TWRP (advanced)")
+    ap.add_argument("--adb", help="adb executable to use")
+    ap.add_argument("--fastboot", help="fastboot executable to use")
+    ap.add_argument("--serial", help="use only the phone with this adb/fastboot serial (also ANDROID_SERIAL)")
     ap.add_argument("--port", type=int, default=0)
     ap.add_argument("--pause-at-end", action="store_true", help=argparse.SUPPRESS)
     ap.add_argument("--test", action="store_true", help=argparse.SUPPRESS)
@@ -126,19 +137,23 @@ def _run(args, root, system):
         i18n.set_lang(state.data["lang"])
     kit = Kit(os.path.join(root, "payload"))
     log_target = {}
-    phone = Phone(system, lambda t: log_target["ui"].detail(t) if "ui" in log_target else None)
+    phone = Phone(system, lambda t: log_target["ui"].detail(t) if "ui" in log_target else None,
+                  adb=_exe(args.adb), fastboot=_exe(args.fastboot), serial=args.serial)
+    opts = {"rom": args.rom, "rom_sha256": args.rom_sha256, "twrp": args.twrp, "phase2_recovery": args.phase2_recovery}
     poller = Poller(phone, interval=3 if sysdeps.IS_WINDOWS else 1.5)
 
     def ctx_factory(ui):
         log_target["ui"] = ui
-        return steps.Ctx(root, work, system, phone, poller, state, kit, ui)
+        return steps.Ctx(root, work, system, phone, poller, state, kit, ui, opts)
 
     try:
         if args.text:
             ui = TextUI(logfile)
             ctx = ctx_factory(ui)
             names = {"backup": "Backup", "firmware": "Firmware", "chain": L("Catena di avvio", "Boot chain"),
-                     "verify": L("Verifica lk1st", "Check lk1st"), "boot": L("Avvio in RAM", "Boot in RAM"),
+                     "verify": L("Verifica lk1st", "Check lk1st"),
+                     "phase2": L("Partizioni Android (fase 2)", "Android partitions (phase 2)"),
+                     "boot": L("Avvio in RAM", "Boot in RAM"),
                      "ramoops": L("Log del boot precedente", "Previous boot log"), "flash": L("Scrivi partizione", "Write partition"),
                      "restore": L("Ripristino EFIESP", "Restore EFIESP"), "diag": L("Diagnostica", "Diagnostics"),
                      "tools": L("Strumenti", "Tools")}
@@ -160,6 +175,8 @@ def _run(args, root, system):
                     steps.ACTIONS[action](ctx)
                 except Cancelled:
                     ui.warn(L("Annullato.", "Cancelled."))
+                    if once:
+                        return 1
                 except (Abort, sysdeps.SysError) as e:
                     ui.error(str(e))
                     if once:
