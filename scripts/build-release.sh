@@ -27,7 +27,8 @@ rm -rf dist && mkdir -p dist "$CACHE"
 
 # sources, with the .gitattributes line endings (installer.bat in CRLF)
 git archive --format=tar --prefix="$NAME/" HEAD | tar -x -C "$STAGE"
-rm -rf "$STAGE/$NAME/scripts" "$STAGE/$NAME/.gitattributes" "$STAGE/$NAME/.gitignore"
+rm -rf "$STAGE/$NAME/scripts" "$STAGE/$NAME/tests" "$STAGE/$NAME/.gitattributes" "$STAGE/$NAME/.gitignore"
+# rom/ and twrp/ keep only their README.txt: the ROM and TWRP are downloaded separately
 
 # Linux
 tar -C "$STAGE" --owner=0 --group=0 --sort=name -czf "dist/$NAME-linux.tar.gz" "$NAME"
